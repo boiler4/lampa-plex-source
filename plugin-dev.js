@@ -8,11 +8,15 @@
     var LAST_TRIGGER_ELEMENT = null;
     var OVERLAY_BACK_ACTION = null;
     var OVERLAY_COLUMNS = 1;
+    var SELECT_SERVER_COOLDOWN_UNTIL = 0;
 
     var DEFAULTS = {
         enabled: true,
         plexBase: '',
         plexToken: '',
+        plexServerName: '',
+        plexConnectionMeta: '',
+        plexConnectionRelay: false,
         clientId: 'lampa-plex-source',
         matchLimit: 5,
         showOnlyExactYear: false,
@@ -33,6 +37,8 @@
                     "enabled": "Плагин включен",
                     "testConnection": "Проверить подключение",
                     "showConfig": "Состояние настроек",
+                    "currentServer": "Текущий сервер",
+                    "notSelected": "не выбран",
                     "plexBase": "Сервер Plex",
                     "plexToken": "Plex Token",
                     "tokenHelp": "Где найти token",
@@ -122,6 +128,8 @@
                     "enabled": "Plugin enabled",
                     "testConnection": "Check connection",
                     "showConfig": "Configuration status",
+                    "currentServer": "Current server",
+                    "notSelected": "not selected",
                     "plexBase": "Plex server",
                     "plexToken": "Plex token",
                     "tokenHelp": "Where to find the token",
@@ -213,6 +221,8 @@
                     "enabled": "Плагін увімкнено",
                     "testConnection": "Перевірити підключення",
                     "showConfig": "Стан налаштувань",
+                    "currentServer": "Поточний сервер",
+                    "notSelected": "не вибрано",
                     "plexBase": "Сервер Plex",
                     "plexToken": "Plex Token",
                     "tokenHelp": "Де знайти token",
@@ -302,6 +312,8 @@
                     "enabled": "Плагін уключаны",
                     "testConnection": "Праверыць падключэнне",
                     "showConfig": "Стан налад",
+                    "currentServer": "Бягучы сервер",
+                    "notSelected": "не выбраны",
                     "plexBase": "Сервер Plex",
                     "plexToken": "Plex Token",
                     "tokenHelp": "Дзе знайсці token",
@@ -391,6 +403,8 @@
                     "enabled": "启用插件",
                     "testConnection": "检查连接",
                     "showConfig": "配置状态",
+                    "currentServer": "当前服务器",
+                    "notSelected": "未选择",
                     "plexBase": "Plex 服务器",
                     "plexToken": "Plex Token",
                     "tokenHelp": "在哪里找到 token",
@@ -480,6 +494,8 @@
                     "enabled": "Plugin ativo",
                     "testConnection": "Verificar ligação",
                     "showConfig": "Estado da configuração",
+                    "currentServer": "Servidor atual",
+                    "notSelected": "não selecionado",
                     "plexBase": "Servidor Plex",
                     "plexToken": "Plex Token",
                     "tokenHelp": "Onde encontrar o token",
@@ -569,6 +585,8 @@
                     "enabled": "Плъгинът е включен",
                     "testConnection": "Провери връзката",
                     "showConfig": "Състояние на настройките",
+                    "currentServer": "Текущ сървър",
+                    "notSelected": "не е избран",
                     "plexBase": "Plex сървър",
                     "plexToken": "Plex Token",
                     "tokenHelp": "Къде да намерите token",
@@ -658,6 +676,8 @@
                     "enabled": "הפלאגין פעיל",
                     "testConnection": "בדיקת חיבור",
                     "showConfig": "מצב הגדרות",
+                    "currentServer": "שרת נוכחי",
+                    "notSelected": "לא נבחר",
                     "plexBase": "שרת Plex",
                     "plexToken": "Plex Token",
                     "tokenHelp": "איפה למצוא את ה-token",
@@ -747,6 +767,8 @@
                     "enabled": "Plugin zapnutý",
                     "testConnection": "Zkontrolovat připojení",
                     "showConfig": "Stav nastavení",
+                    "currentServer": "Aktuální server",
+                    "notSelected": "nevybráno",
                     "plexBase": "Plex server",
                     "plexToken": "Plex Token",
                     "tokenHelp": "Kde najít token",
@@ -836,6 +858,8 @@
                     "enabled": "Plugin activ",
                     "testConnection": "Verifică conexiunea",
                     "showConfig": "Starea configurării",
+                    "currentServer": "Server curent",
+                    "notSelected": "neselectat",
                     "plexBase": "Server Plex",
                     "plexToken": "Plex Token",
                     "tokenHelp": "Unde găsești tokenul",
@@ -925,6 +949,8 @@
                     "enabled": "Plugin activé",
                     "testConnection": "Vérifier la connexion",
                     "showConfig": "État de la configuration",
+                    "currentServer": "Serveur actuel",
+                    "notSelected": "non sélectionné",
                     "plexBase": "Serveur Plex",
                     "plexToken": "Plex Token",
                     "tokenHelp": "Où trouver le token",
@@ -1014,6 +1040,8 @@
                     "enabled": "Plugin attivo",
                     "testConnection": "Verifica connessione",
                     "showConfig": "Stato configurazione",
+                    "currentServer": "Server attuale",
+                    "notSelected": "non selezionato",
                     "plexBase": "Server Plex",
                     "plexToken": "Token Plex",
                     "tokenHelp": "Dove trovare il token",
@@ -1126,6 +1154,9 @@
             enabled: boolValue('enabled', DEFAULTS.enabled),
             plexBase: String(get('plexBase', DEFAULTS.plexBase) || '').trim().replace(/\/$/, ''),
             plexToken: String(get('plexToken', DEFAULTS.plexToken) || '').trim(),
+            plexServerName: String(get('plexServerName', DEFAULTS.plexServerName) || '').trim(),
+            plexConnectionMeta: String(get('plexConnectionMeta', DEFAULTS.plexConnectionMeta) || '').trim(),
+            plexConnectionRelay: boolValue('plexConnectionRelay', DEFAULTS.plexConnectionRelay),
             clientId: String(get('clientId', DEFAULTS.clientId) || DEFAULTS.clientId).trim(),
             matchLimit: parseInt(get('matchLimit', DEFAULTS.matchLimit), 10) || DEFAULTS.matchLimit,
             showOnlyExactYear: boolValue('showOnlyExactYear', DEFAULTS.showOnlyExactYear),
@@ -1336,7 +1367,7 @@
 
     function savePlexServerChoice(choice) {
         if (!choice || !choice.connection || !choice.connection.uri) throw new Error('no-server');
-        save({ plexBase: choice.connection.uri.replace(/\/$/, '') });
+        save({ plexBase: choice.connection.uri.replace(/\/$/, ''), plexServerName: choice.server.name || 'Plex', plexConnectionMeta: connectionMeta(choice.connection, false), plexConnectionRelay: !!choice.connection.relay });
         log('Plex server selected', { name: choice.server.name, uri: choice.connection.uri, local: choice.connection.local, relay: choice.connection.relay });
         return choice;
     }
@@ -1359,7 +1390,7 @@
                         meta: connectionMeta(choice.connection, index === 0),
                         onClick: function () {
                             closeOverlay(false);
-                            try { resolve(savePlexServerChoice(choice)); }
+                            SELECT_SERVER_COOLDOWN_UNTIL = Date.now ? Date.now() + 1200 : 0; try { resolve(savePlexServerChoice(choice)); }
                             catch (e) { reject(e); }
                         }
                     };
@@ -1716,6 +1747,20 @@
     function streamUrl(item) {
         if (!item || !item.partKey) return '';
         var s = settings();
+        if (s.plexConnectionRelay && item.ratingKey) {
+            var params = new URLSearchParams({
+                path: '/library/metadata/' + item.ratingKey,
+                mediaIndex: '0',
+                partIndex: '0',
+                protocol: 'hls',
+                directPlay: '0',
+                directStream: '1',
+                fastSeek: '1',
+                'X-Plex-Token': s.plexToken,
+                'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
+            });
+            return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
+        }
         return s.plexBase + item.partKey + (item.partKey.indexOf('?') >= 0 ? '&' : '?') + 'download=0&X-Plex-Token=' + encodeURIComponent(s.plexToken);
     }
 
@@ -1985,7 +2030,14 @@
                 el.appendChild(titleWrap);
                 if (meta) el.appendChild(meta);
             }
-            el.onclick = row.onClick;
+            el.onclick = function (event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                }
+                row.onClick();
+            };
             box.appendChild(el);
         });
 
@@ -2355,8 +2407,9 @@
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
         add({ type: 'static', name: component + '_info', field: { name: t('infoTitle'), description: t('infoText') } });
+        add({ type: 'static', name: component + '_current_server', field: { name: t('currentServer'), description: (settings().plexBase ? ((settings().plexServerName || 'Plex') + ' — ' + (settings().plexConnectionMeta || settings().plexBase)) : t('notSelected')) } });
         add({ type: 'button', name: component + '_plex_login', field: { name: t('plexLogin'), description: t('plexLoginDescription') }, onChange: function () { startPlexLogin(); } });
-        add({ type: 'button', name: component + '_discover_server', field: { name: t('selectServer') }, onChange: function () { noty(t('plexServerDiscovering')); choosePlexServer().then(function (best) { noty(t('serverSelected') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server select failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
+        add({ type: 'button', name: component + '_discover_server', field: { name: t('selectServer') }, onChange: function () { if (Date.now && Date.now() < SELECT_SERVER_COOLDOWN_UNTIL) return; noty(t('plexServerDiscovering')); choosePlexServer().then(function (best) { noty(t('serverSelected') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server select failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
         add({ type: 'button', name: component + '_test_connection', field: { name: t('testConnection') }, onChange: function () { fetchXml('/identity', {}).then(function (doc) { var m = doc.querySelector('MediaContainer'); log('connection test ok', { friendlyName: attr(m, 'friendlyName'), machineIdentifier: attr(m, 'machineIdentifier') }); noty(t('connectionOk') + ': ' + (attr(m, 'friendlyName') || attr(m, 'machineIdentifier') || 'Plex')); }).catch(function (err) { log('test failed', err && (err.stack || err.message || err)); noty(t('connectionFail')); }); } });
         add({ type: 'button', name: component + '_show_config', field: { name: t('showConfig') }, onChange: function () { var s = settings(); noty(t('currentConfigPrefix') + ': ' + (s.plexBase || t('notSet')) + ' / token ' + (s.plexToken ? t('present') : t('missing'))); } });
 
