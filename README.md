@@ -28,7 +28,13 @@ It does **not** require a backend bridge. Users install one JavaScript URL in La
 
 Host `plugin.js` somewhere reachable by the device running Lampa, then add the URL in Lampa plugin settings.
 
-Example raw GitHub URL after publishing:
+Recommended install URL:
+
+```text
+https://cdn.jsdelivr.net/gh/boiler4/lampa-plex-source@main/plugin.js
+```
+
+Raw GitHub URL is also available, but some Lampa clients may reject it because GitHub serves raw files as `text/plain`:
 
 ```text
 https://raw.githubusercontent.com/boiler4/lampa-plex-source/main/plugin.js
@@ -77,6 +83,8 @@ Episode action behavior is configurable:
 
 - **OK plays, long press opens actions** — default.
 - **OK opens actions** — useful if long press is inconvenient on your remote.
+
+Playback uses Lampa’s normal file playback flow. On clients where Lampa lets you choose a player for playback, Plex Source follows the player configured for torrent/file playback.
 
 The action menu includes:
 
