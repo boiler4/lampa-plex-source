@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="48" viewBox="0 0 240 48" role="img" aria-label="Support via PayPal">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0070BA"/>
+      <stop offset="1" stop-color="#003087"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="48" rx="12" fill="url(#bg)"/>
+  <circle cx="28" cy="24" r="14" fill="#fff" opacity="0.96"/>
+  <path d="M23.2 32.5h-4.1l4.2-20h8.1c3.7 0 5.9 2 5.5 5.2-.5 4.4-3.9 6.6-8 6.6h-3.1l-1.6 8.2Zm3.3-11.6h2.7c2 0 3.2-1 3.4-2.8.2-1.4-.7-2.2-2.4-2.2h-3l-.7 5Z" fill="#003087"/>
+  <text x="54" y="21" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#fff">Support development</text>
+  <text x="54" y="34" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" fill="#DDEEFF">via PayPal</text>
+</svg>
