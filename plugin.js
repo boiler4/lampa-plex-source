@@ -1798,7 +1798,8 @@
         catch (e) { log('annotate installed plugin failed', e && (e.stack || e.message || e)); }
     }
 
-    function start() {        if (window[READY_FLAG] || !window.Lampa || !Lampa.Listener || !Lampa.Player || !Lampa.Storage) return;
+    function start() {
+        if (window[READY_FLAG] || !window.Lampa || !Lampa.Listener || !Lampa.Player || !Lampa.Storage) return;
         window[READY_FLAG] = true;
         ensureStyle();
         addSettings();
