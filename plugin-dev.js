@@ -95,6 +95,7 @@
                     "connectionTitle": "Plex connection",
                     "searchTitle": "Search",
                     "advancedTitle": "Advanced",
+                    "manualSetupTitle": "Manual setup (optional)",
                     "infoTitle": "Help",
                     "enabled": "Plugin enabled",
                     "testConnection": "Check connection",
@@ -788,6 +789,7 @@
                     "connectionTitle": "Connessione Plex",
                     "searchTitle": "Ricerca",
                     "advancedTitle": "Avanzate",
+                    "manualSetupTitle": "Configurazione manuale (opzionale)",
                     "infoTitle": "Aiuto",
                     "enabled": "Plugin attivo",
                     "testConnection": "Verifica connessione",
@@ -2130,14 +2132,16 @@
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
-        add({ type: 'button', name: component + '_test_connection', field: { name: t('testConnection') }, onChange: function () { fetchXml('/identity', {}).then(function (doc) { var m = doc.querySelector('MediaContainer'); log('connection test ok', { friendlyName: attr(m, 'friendlyName'), machineIdentifier: attr(m, 'machineIdentifier') }); noty(t('connectionOk') + ': ' + (attr(m, 'friendlyName') || attr(m, 'machineIdentifier') || 'Plex')); }).catch(function (err) { log('test failed', err && (err.stack || err.message || err)); noty(t('connectionFail')); }); } });
-        add({ type: 'button', name: component + '_show_config', field: { name: t('showConfig') }, onChange: function () { var s = settings(); noty(t('currentConfigPrefix') + ': ' + (s.plexBase || t('notSet')) + ' / token ' + (s.plexToken ? t('present') : t('missing'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
         add({ type: 'static', name: component + '_info', field: { name: t('infoTitle'), description: t('infoText') } });
-        add({ type: 'button', name: component + '_plex_base', field: { name: t('plexBase'), description: t('baseDescription') }, onChange: function () { promptText(t('plexBase'), 'http://192.168.1.10:32400', settings().plexBase, function (v) { save({ plexBase: v.trim().replace(/\/$/, '') }); noty(t('savedBase')); }); } });
-        add({ type: 'button', name: component + '_discover_server', field: { name: t('selectServer') }, onChange: function () { noty(t('plexServerDiscovering')); choosePlexServer().then(function (best) { noty(t('serverSelected') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server select failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
         add({ type: 'button', name: component + '_plex_login', field: { name: t('plexLogin'), description: t('plexLoginDescription') }, onChange: function () { startPlexLogin(); } });
+        add({ type: 'button', name: component + '_discover_server', field: { name: t('selectServer') }, onChange: function () { noty(t('plexServerDiscovering')); choosePlexServer().then(function (best) { noty(t('serverSelected') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server select failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
+        add({ type: 'button', name: component + '_test_connection', field: { name: t('testConnection') }, onChange: function () { fetchXml('/identity', {}).then(function (doc) { var m = doc.querySelector('MediaContainer'); log('connection test ok', { friendlyName: attr(m, 'friendlyName'), machineIdentifier: attr(m, 'machineIdentifier') }); noty(t('connectionOk') + ': ' + (attr(m, 'friendlyName') || attr(m, 'machineIdentifier') || 'Plex')); }).catch(function (err) { log('test failed', err && (err.stack || err.message || err)); noty(t('connectionFail')); }); } });
+        add({ type: 'button', name: component + '_show_config', field: { name: t('showConfig') }, onChange: function () { var s = settings(); noty(t('currentConfigPrefix') + ': ' + (s.plexBase || t('notSet')) + ' / token ' + (s.plexToken ? t('present') : t('missing'))); } });
+
+        add({ type: 'title', name: component + '_title_manual', field: { name: t('manualSetupTitle') } });
+        add({ type: 'button', name: component + '_plex_base', field: { name: t('plexBase'), description: t('baseDescription') }, onChange: function () { promptText(t('plexBase'), 'http://192.168.1.10:32400', settings().plexBase, function (v) { save({ plexBase: v.trim().replace(/\/$/, '') }); noty(t('savedBase')); }); } });
         add({ type: 'button', name: component + '_plex_token', field: { name: t('plexToken'), description: t('tokenDescription') }, onChange: function () { promptText(t('plexToken'), t('tokenPlaceholder'), settings().plexToken, function (v) { save({ plexToken: v.trim() }); noty(t('savedToken')); }); } });
         add({ type: 'button', name: component + '_clear_token', field: { name: t('clearToken') }, onChange: function () { save({ plexToken: '' }); noty(t('clearTokenDone')); } });
         add({ type: 'static', name: component + '_token_help', field: { name: t('tokenHelp'), description: t('tokenHelpText') } });
