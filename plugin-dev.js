@@ -1172,6 +1172,14 @@
         });
     }
 
+    function refreshSettingsSoon() {
+        setTimeout(function () { try { addSettings(); } catch (e) {} }, 80);
+    }
+
+    function maskTokenUrl(url) {
+        return String(url || '').replace(/(X-Plex-Token=)[^&]+/g, '$1***');
+    }
+
     function boolFromParam(value, fallback) {
         if (value === true || value === 'true' || value === '1' || value === 1) return true;
         if (value === false || value === 'false' || value === '0' || value === 0) return false;
@@ -1368,7 +1376,8 @@
     function savePlexServerChoice(choice) {
         if (!choice || !choice.connection || !choice.connection.uri) throw new Error('no-server');
         save({ plexBase: choice.connection.uri.replace(/\/$/, ''), plexServerName: choice.server.name || 'Plex', plexConnectionMeta: connectionMeta(choice.connection, false), plexConnectionRelay: !!choice.connection.relay });
-        log('Plex server selected', { name: choice.server.name, uri: choice.connection.uri, local: choice.connection.local, relay: choice.connection.relay });
+        log('Plex server selected', { name: choice.server.name, uri: choice.connection.uri, local: choice.connection.local, relay: choice.connection.relay, meta: connectionMeta(choice.connection, false) });
+        refreshSettingsSoon();
         return choice;
     }
 
@@ -1754,10 +1763,15 @@
                 partIndex: '0',
                 protocol: 'hls',
                 directPlay: '0',
-                directStream: '1',
+                directStream: '0',
                 fastSeek: '1',
+                copyts: '1',
+                subtitles: 'burn',
                 'X-Plex-Token': s.plexToken,
-                'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
+                'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
+                'X-Plex-Product': 'Plex Source for Lampa',
+                'X-Plex-Version': '0.1.0-beta',
+                'X-Plex-Platform': 'Web'
             });
             return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
         }
@@ -1823,6 +1837,7 @@
             plex: { ratingKey: item.ratingKey, sectionTitle: item.sectionTitle }
         };
 
+        log('play item', { relay: settings().plexConnectionRelay, base: settings().plexBase, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url) });
         Lampa.Player.play(data);
         Lampa.Player.playlist([{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }]);
     }
@@ -2407,7 +2422,7 @@
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
         add({ type: 'static', name: component + '_info', field: { name: t('infoTitle'), description: t('infoText') } });
-        add({ type: 'static', name: component + '_current_server', field: { name: t('currentServer'), description: (settings().plexBase ? ((settings().plexServerName || 'Plex') + ' — ' + (settings().plexConnectionMeta || settings().plexBase)) : t('notSelected')) } });
+        add({ type: 'button', name: component + '_current_server', field: { name: t('currentServer'), description: (settings().plexBase ? ((settings().plexServerName || 'Plex') + ' — ' + (settings().plexConnectionMeta || settings().plexBase)) : t('notSelected')) }, onChange: function () { var s = settings(); noty(t('currentServer') + ': ' + (s.plexBase ? ((s.plexServerName || 'Plex') + ' — ' + (s.plexConnectionMeta || s.plexBase)) : t('notSelected'))); } });
         add({ type: 'button', name: component + '_plex_login', field: { name: t('plexLogin'), description: t('plexLoginDescription') }, onChange: function () { startPlexLogin(); } });
         add({ type: 'button', name: component + '_discover_server', field: { name: t('selectServer') }, onChange: function () { if (Date.now && Date.now() < SELECT_SERVER_COOLDOWN_UNTIL) return; noty(t('plexServerDiscovering')); choosePlexServer().then(function (best) { noty(t('serverSelected') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server select failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
         add({ type: 'button', name: component + '_test_connection', field: { name: t('testConnection') }, onChange: function () { fetchXml('/identity', {}).then(function (doc) { var m = doc.querySelector('MediaContainer'); log('connection test ok', { friendlyName: attr(m, 'friendlyName'), machineIdentifier: attr(m, 'machineIdentifier') }); noty(t('connectionOk') + ': ' + (attr(m, 'friendlyName') || attr(m, 'machineIdentifier') || 'Plex')); }).catch(function (err) { log('test failed', err && (err.stack || err.message || err)); noty(t('connectionFail')); }); } });
