@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add optional Plex PIN/OAuth login flow from Lampa settings.
+- Keep manual Plex token entry as an advanced/fallback option.
+- Add clear-token action.
+
 ## 0.1.0-beta
 
 Initial beta prepared for private GitHub testing.

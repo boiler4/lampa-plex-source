@@ -102,6 +102,17 @@
                     "plexBase": "Plex server",
                     "plexToken": "Plex token",
                     "tokenHelp": "Where to find the token",
+                    "plexLogin": "Login with Plex",
+                    "plexLoginDescription": "Recommended: authorize this plugin on plex.tv and save the token automatically.",
+                    "plexLoginOpen": "Open Plex login",
+                    "plexLoginCode": "Code",
+                    "plexLoginWaiting": "Waiting for Plex authorization…",
+                    "plexLoginSuccess": "Plex login successful",
+                    "plexLoginFailed": "Plex login failed",
+                    "plexLoginExpired": "Plex login expired",
+                    "plexLoginHelp": "Scan the QR code or open the Plex login URL, authorize the plugin, then return to Lampa.",
+                    "clearToken": "Clear Plex token",
+                    "clearTokenDone": "Plex token cleared",
                     "matchLimit": "Maximum results",
                     "exactYear": "Exact year only",
                     "clientId": "Client identifier",
@@ -772,6 +783,17 @@
                     "plexBase": "Server Plex",
                     "plexToken": "Token Plex",
                     "tokenHelp": "Dove trovare il token",
+                    "plexLogin": "Login con Plex",
+                    "plexLoginDescription": "Consigliato: autorizza questo plugin su plex.tv e salva automaticamente il token.",
+                    "plexLoginOpen": "Apri login Plex",
+                    "plexLoginCode": "Codice",
+                    "plexLoginWaiting": "In attesa autorizzazione Plex…",
+                    "plexLoginSuccess": "Login Plex riuscito",
+                    "plexLoginFailed": "Login Plex fallito",
+                    "plexLoginExpired": "Login Plex scaduto",
+                    "plexLoginHelp": "Scansiona il QR code o apri l’URL di login Plex, autorizza il plugin, poi torna in Lampa.",
+                    "clearToken": "Cancella token Plex",
+                    "clearTokenDone": "Token Plex cancellato",
                     "matchLimit": "Numero massimo risultati",
                     "exactYear": "Solo anno esatto",
                     "clientId": "Identificatore client",
@@ -924,6 +946,158 @@
 
     function noty(text) {
         if (window.Lampa && Lampa.Noty) Lampa.Noty.show(text);
+    }
+
+    function plexAuthHeaders() {
+        var s = settings();
+        return {
+            'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
+            'X-Plex-Product': 'Plex Source for Lampa',
+            'X-Plex-Version': '0.1.0-beta',
+            'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
+            'X-Plex-Platform': 'Web',
+            'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
+            'X-Plex-Device': 'Lampa',
+            'X-Plex-Device-Name': 'Lampa Plex Source'
+        };
+    }
+
+    function parsePlexAuthResponse(text) {
+        try { return JSON.parse(text); }
+        catch (jsonError) {
+            var doc = new DOMParser().parseFromString(text, 'application/xml');
+            var root = doc.documentElement;
+            if (!root) return {};
+            return {
+                id: root.getAttribute('id'),
+                code: root.getAttribute('code'),
+                authToken: root.getAttribute('authToken'),
+                qr: root.getAttribute('qr')
+            };
+        }
+    }
+
+    function createPlexPin() {
+        return fetch('https://plex.tv/api/v2/pins?strong=true', {
+            method: 'POST',
+            mode: 'cors',
+            headers: plexAuthHeaders()
+        }).then(function (resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.text();
+        }).then(parsePlexAuthResponse);
+    }
+
+    function checkPlexPin(id) {
+        return fetch('https://plex.tv/api/v2/pins/' + encodeURIComponent(id), {
+            method: 'GET',
+            mode: 'cors',
+            headers: plexAuthHeaders()
+        }).then(function (resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.text();
+        }).then(parsePlexAuthResponse);
+    }
+
+    function plexOauthUrl(code) {
+        var h = plexAuthHeaders();
+        var params = new URLSearchParams();
+        params.set('clientID', h['X-Plex-Client-Identifier']);
+        params.set('context[device][product]', h['X-Plex-Product']);
+        params.set('context[device][version]', h['X-Plex-Version']);
+        params.set('context[device][platform]', h['X-Plex-Platform']);
+        params.set('context[device][platformVersion]', h['X-Plex-Platform-Version']);
+        params.set('context[device][device]', h['X-Plex-Device']);
+        params.set('context[device][deviceName]', h['X-Plex-Device-Name']);
+        params.set('code', code);
+        return 'https://app.plex.tv/auth/#!?' + params.toString();
+    }
+
+    function showPlexLoginOverlay(pin, url, onClose) {
+        var old = document.querySelector('.plex-source-login-overlay');
+        if (old) old.remove();
+        var overlay = document.createElement('div');
+        overlay.className = 'plex-source-login-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,.86);color:#fff;font-family:Arial,sans-serif;padding:24px;overflow:auto;text-align:center;';
+        var close = document.createElement('button');
+        close.textContent = 'Close';
+        close.style.cssText = 'position:fixed;top:14px;right:14px;z-index:2;padding:10px 14px;border-radius:8px;border:0;';
+        close.onclick = function () { overlay.remove(); if (onClose) onClose(); };
+        overlay.appendChild(close);
+        var title = document.createElement('div');
+        title.textContent = t('plexLogin');
+        title.style.cssText = 'font-size:26px;font-weight:bold;margin:18px 0 10px;';
+        overlay.appendChild(title);
+        var help = document.createElement('div');
+        help.textContent = t('plexLoginHelp');
+        help.style.cssText = 'font-size:16px;opacity:.9;max-width:760px;margin:0 auto 20px;line-height:1.35;';
+        overlay.appendChild(help);
+        if (pin.qr) {
+            var img = document.createElement('img');
+            img.src = pin.qr;
+            img.alt = 'Plex QR';
+            img.style.cssText = 'width:220px;height:220px;background:#fff;padding:10px;border-radius:10px;margin:10px auto;display:block;';
+            overlay.appendChild(img);
+        }
+        var code = document.createElement('div');
+        code.textContent = t('plexLoginCode') + ': ' + (pin.code || '');
+        code.style.cssText = 'font-size:22px;font-weight:bold;letter-spacing:1px;margin:16px 0;';
+        overlay.appendChild(code);
+        var link = document.createElement('div');
+        link.textContent = url;
+        link.style.cssText = 'font-size:13px;word-break:break-all;opacity:.85;max-width:900px;margin:12px auto;';
+        overlay.appendChild(link);
+        var open = document.createElement('button');
+        open.textContent = t('plexLoginOpen');
+        open.style.cssText = 'padding:12px 18px;border-radius:8px;border:0;margin:12px;font-weight:bold;';
+        open.onclick = function () { try { window.open(url, '_blank'); } catch (e) {} };
+        overlay.appendChild(open);
+        var status = document.createElement('div');
+        status.className = 'plex-source-login-status';
+        status.textContent = t('plexLoginWaiting');
+        status.style.cssText = 'margin-top:18px;font-size:16px;';
+        overlay.appendChild(status);
+        document.body.appendChild(overlay);
+        return {
+            close: function () { overlay.remove(); if (onClose) onClose(); },
+            status: function (text) { status.textContent = text; }
+        };
+    }
+
+    function startPlexLogin() {
+        var cancelled = false;
+        noty(t('plexLoginWaiting'));
+        createPlexPin().then(function (pin) {
+            if (!pin || !pin.id || !pin.code) throw new Error('missing-pin');
+            var url = plexOauthUrl(pin.code);
+            var ui = showPlexLoginOverlay(pin, url, function () { cancelled = true; });
+            var started = Date.now();
+            function poll() {
+                if (cancelled) return;
+                if (Date.now() - started > 120000) {
+                    ui.status(t('plexLoginExpired'));
+                    noty(t('plexLoginExpired'));
+                    return;
+                }
+                checkPlexPin(pin.id).then(function (state) {
+                    if (state && state.authToken) {
+                        save({ plexToken: String(state.authToken || '').trim() });
+                        ui.status(t('plexLoginSuccess'));
+                        noty(t('plexLoginSuccess'));
+                        setTimeout(function () { ui.close(); }, 1200);
+                        return;
+                    }
+                    setTimeout(poll, 2000);
+                }).catch(function (err) {
+                    log('Plex login poll failed', err && (err.stack || err.message || err));
+                    setTimeout(poll, 3000);
+                });
+            }
+            poll();
+        }).catch(function (err) {
+            log('Plex login failed', err && (err.stack || err.message || err));
+            noty(t('plexLoginFailed'));
+        });
     }
 
     function plexHeaders(s) {
@@ -1759,7 +1933,9 @@
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
         add({ type: 'static', name: component + '_info', field: { name: t('infoTitle'), description: t('infoText') } });
         add({ type: 'button', name: component + '_plex_base', field: { name: t('plexBase'), description: t('baseDescription') }, onChange: function () { promptText(t('plexBase'), 'http://192.168.1.10:32400', settings().plexBase, function (v) { save({ plexBase: v.trim().replace(/\/$/, '') }); noty(t('savedBase')); }); } });
+        add({ type: 'button', name: component + '_plex_login', field: { name: t('plexLogin'), description: t('plexLoginDescription') }, onChange: function () { startPlexLogin(); } });
         add({ type: 'button', name: component + '_plex_token', field: { name: t('plexToken'), description: t('tokenDescription') }, onChange: function () { promptText(t('plexToken'), t('tokenPlaceholder'), settings().plexToken, function (v) { save({ plexToken: v.trim() }); noty(t('savedToken')); }); } });
+        add({ type: 'button', name: component + '_clear_token', field: { name: t('clearToken') }, onChange: function () { save({ plexToken: '' }); noty(t('clearTokenDone')); } });
         add({ type: 'static', name: component + '_token_help', field: { name: t('tokenHelp'), description: t('tokenHelpText') } });
 
         add({ type: 'title', name: component + '_title_search', field: { name: t('searchTitle') } });
