@@ -91,6 +91,9 @@
                     "connectionFail": "Ошибка подключения Plex",
                     "debugTitle": "Plex Source debug — последние логи",
                     "debugEmpty": "Логов пока нет. Откройте карточку фильма/сериала и попробуйте снова.",
+                    "copyDebugLog": "Скопировать лог",
+                    "debugLogCopied": "Лог скопирован",
+                    "openGithubIssue": "Открыть GitHub issue",
                     "showFallback": "Сериал",
                     "episodeFallback": "Эпизод",
                     "seasonFallback": "Сезон",
@@ -184,6 +187,9 @@
                     "connectionFail": "Plex connection failed",
                     "debugTitle": "Plex Source debug — latest logs",
                     "debugEmpty": "No logs yet. Open a movie/show card and try again.",
+                    "copyDebugLog": "Copy log",
+                    "debugLogCopied": "Log copied",
+                    "openGithubIssue": "Open GitHub issue",
                     "showFallback": "Show",
                     "episodeFallback": "Episode",
                     "seasonFallback": "Season",
@@ -1096,6 +1102,9 @@
                     "connectionFail": "Connessione Plex fallita",
                     "debugTitle": "Plex Source debug — ultimi log",
                     "debugEmpty": "Nessun log ancora. Apri una scheda film/serie e riprova.",
+                    "copyDebugLog": "Copia log",
+                    "debugLogCopied": "Log copiato",
+                    "openGithubIssue": "Apri issue GitHub",
                     "showFallback": "Serie",
                     "episodeFallback": "Episodio",
                     "seasonFallback": "Stagione",
@@ -1203,30 +1212,72 @@
         console.log.apply(console, ['[plex-source]'].concat(args));
     }
 
+    function debugText() {
+        return DEBUG_BUFFER.length ? DEBUG_BUFFER.map(function (row) {
+            return '[' + row.time + '] ' + row.args.join(' ');
+        }).join('\n\n') : t('debugEmpty');
+    }
+
     function showDebugPanel() {
         var old = document.querySelector('.plex-source-debug-overlay');
         if (old) old.remove();
         var overlay = document.createElement('div');
         overlay.className = 'plex-source-debug-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,.82);color:#fff;font-family:monospace;padding:18px;overflow:auto;white-space:pre-wrap;font-size:12px;';
+        function closeDebug() {
+            document.removeEventListener('keydown', debugKeyHandler, true);
+            overlay.remove();
+        }
+        function debugKeyHandler(event) {
+            var key = event.key || event.code || '';
+            var code = event.keyCode || event.which;
+            if (key === 'Backspace' || key === 'Escape' || key === 'Esc' || key === 'BrowserBack' || code === 8 || code === 27 || code === 461 || code === 10009) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                closeDebug();
+                return false;
+            }
+        }
+        var actions = document.createElement('div');
+        actions.style.cssText = 'position:sticky;top:0;float:right;z-index:2;display:flex;gap:8px;align-items:center;';
+        var copy = document.createElement('button');
+        copy.textContent = t('copyDebugLog');
+        copy.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
+        copy.onclick = function () {
+            var text = debugText();
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text);
+                else window.prompt(t('copyDebugLog'), text);
+                noty(t('debugLogCopied'));
+            } catch (e) { window.prompt(t('copyDebugLog'), text); }
+        };
+        var issue = document.createElement('button');
+        issue.textContent = t('openGithubIssue');
+        issue.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
+        issue.onclick = function () {
+            var body = 'Debug log:\n\n```\n' + debugText() + '\n```';
+            try { window.open('https://github.com/boiler4/lampa-plex-source/issues/new?title=' + encodeURIComponent('Plex Source debug log') + '&body=' + encodeURIComponent(body), '_blank'); }
+            catch (e) {}
+        };
         var close = document.createElement('button');
         close.textContent = 'Close';
-        close.style.cssText = 'position:sticky;top:0;float:right;z-index:2;padding:8px 12px;';
-        close.onclick = function () { overlay.remove(); };
-        overlay.appendChild(close);
+        close.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
+        close.onclick = closeDebug;
+        actions.appendChild(copy);
+        actions.appendChild(issue);
+        actions.appendChild(close);
+        overlay.appendChild(actions);
         var title = document.createElement('div');
         title.textContent = t('debugTitle');
         title.style.cssText = 'font-size:18px;font-weight:bold;margin-bottom:12px;';
         overlay.appendChild(title);
         var body = document.createElement('div');
-        body.textContent = DEBUG_BUFFER.length ? DEBUG_BUFFER.map(function (row) {
-            return '[' + row.time + '] ' + row.args.join(' ');
-        }).join('\n\n') : t('debugEmpty');
+        body.textContent = debugText();
         overlay.appendChild(body);
+        document.addEventListener('keydown', debugKeyHandler, true);
         document.body.appendChild(overlay);
-        overlayFocus(0);
-        setTimeout(function () { overlayFocus(0); }, 0);
-        setTimeout(function () { overlayFocus(0); }, 120);
+        try { close.focus(); } catch (e) {}
     }
 
     function noty(text) {
