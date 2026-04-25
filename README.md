@@ -31,13 +31,13 @@ Host `plugin.js` somewhere reachable by the device running Lampa, then add the U
 Recommended install URL:
 
 ```text
-https://cdn.jsdelivr.net/gh/boiler4/lampa-plex-source@main/plugin.js
+https://cdn.jsdelivr.net/gh/boiler4/lampa-plex-source@dev/plugin.js
 ```
 
 Raw GitHub URL is also available, but some Lampa clients may reject it because GitHub serves raw files as `text/plain`:
 
 ```text
-https://raw.githubusercontent.com/boiler4/lampa-plex-source/main/plugin.js
+https://raw.githubusercontent.com/boiler4/lampa-plex-source/dev/plugin.js
 ```
 
 In Lampa:
