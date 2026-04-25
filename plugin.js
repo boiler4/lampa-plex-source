@@ -1020,13 +1020,33 @@
     function showPlexLoginOverlay(pin, url, onClose) {
         var old = document.querySelector('.plex-source-login-overlay');
         if (old) old.remove();
+        var closed = false;
         var overlay = document.createElement('div');
         overlay.className = 'plex-source-login-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,.86);color:#fff;font-family:Arial,sans-serif;padding:24px;overflow:auto;text-align:center;';
+        function finishClose() {
+            if (closed) return;
+            closed = true;
+            document.removeEventListener('keydown', loginKeyHandler, true);
+            overlay.remove();
+            if (onClose) onClose();
+        }
+        function loginKeyHandler(event) {
+            var key = event.key || event.code || '';
+            var code = event.keyCode || event.which;
+            if (key === 'Backspace' || key === 'Escape' || key === 'Esc' || key === 'BrowserBack' || code === 8 || code === 27 || code === 461 || code === 10009) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                finishClose();
+                return false;
+            }
+        }
         var close = document.createElement('button');
         close.textContent = 'Close';
-        close.style.cssText = 'position:fixed;top:14px;right:14px;z-index:2;padding:10px 14px;border-radius:8px;border:0;';
-        close.onclick = function () { overlay.remove(); if (onClose) onClose(); };
+        close.setAttribute('tabindex', '0');
+        close.style.cssText = 'position:fixed;top:14px;right:14px;z-index:2;padding:14px 18px;border-radius:8px;border:0;font-size:18px;font-weight:bold;';
+        close.onclick = finishClose;
         overlay.appendChild(close);
         var title = document.createElement('div');
         title.textContent = t('plexLogin');
@@ -1067,9 +1087,12 @@
         status.textContent = t('plexLoginWaiting');
         status.style.cssText = 'margin-top:18px;font-size:16px;';
         overlay.appendChild(status);
+        overlay.addEventListener('click', function (event) { if (event.target === overlay) finishClose(); });
+        document.addEventListener('keydown', loginKeyHandler, true);
         document.body.appendChild(overlay);
+        try { close.focus(); } catch (e) {}
         return {
-            close: function () { overlay.remove(); if (onClose) onClose(); },
+            close: finishClose,
             status: function (text) { status.textContent = text; }
         };
     }
