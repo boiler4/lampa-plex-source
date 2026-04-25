@@ -114,6 +114,7 @@
                     "plexServerDiscoverFailed": "Could not auto-detect Plex server",
                     "discoverServer": "Auto-detect Plex server",
                     "selectServer": "Select Plex server",
+                    "selectServerHelp": "Choose local/non-relay when available: it is usually faster and works best at home. Remote/relay is useful away from home but can be slower.",
                     "serverSelected": "Plex server selected",
                     "localConnection": "local",
                     "remoteConnection": "remote",
@@ -804,6 +805,7 @@
                     "plexServerDiscoverFailed": "Server Plex non rilevato automaticamente",
                     "discoverServer": "Rileva server Plex",
                     "selectServer": "Scegli server Plex",
+                    "selectServerHelp": "Scegli locale/non-relay quando disponibile: di solito è più veloce e funziona meglio in casa. Remoto/relay è utile fuori casa ma può essere più lento.",
                     "serverSelected": "Server Plex selezionato",
                     "localConnection": "locale",
                     "remoteConnection": "remoto",
@@ -1105,7 +1107,7 @@
             if (!choices.length) throw new Error('no-server');
             if (choices.length === 1) return savePlexServerChoice(choices[0]);
             return new Promise(function (resolve, reject) {
-                showList(t('selectServer'), '', choices.map(function (choice) {
+                showList(t('selectServer'), t('selectServerHelp'), choices.map(function (choice) {
                     return {
                         title: choice.server.name || 'Plex',
                         meta: connectionMeta(choice.connection),
