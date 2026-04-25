@@ -1774,8 +1774,35 @@
     }
 
 
-    function annotateInstalledPlugin() {
+
+    function annotateInstalledPluginDom() {
         try {
+            var cards = Array.prototype.slice.call(document.querySelectorAll('.extensions__item'));
+            cards.forEach(function (card) {
+                var text = card.textContent || '';
+                if (text.indexOf('lampa-plex-source') < 0 && text.indexOf('cdn.jsdelivr.net/gh/boiler4') < 0) return;
+                var name = card.querySelector('.extensions__item-name');
+                var author = card.querySelector('.extensions__item-author');
+                var descr = card.querySelector('.extensions__item-descr');
+                if (name) name.textContent = 'Plex Source';
+                if (author) author.textContent = 'boiler4';
+                if (descr) descr.textContent = 'Frontend-only Plex source for Lampa';
+            });
+        }
+        catch (e) {}
+    }
+
+    function observeInstalledPluginDom() {
+        annotateInstalledPluginDom();
+        if (window.PlexSourcePluginDomObserver || typeof MutationObserver === 'undefined') return;
+        try {
+            window.PlexSourcePluginDomObserver = new MutationObserver(function () { annotateInstalledPluginDom(); });
+            window.PlexSourcePluginDomObserver.observe(document.body, { childList: true, subtree: true });
+        }
+        catch (e) {}
+    }
+
+    function annotateInstalledPlugin() {        try {
             var changed = false;
             var currentSrc = '';
             try {
