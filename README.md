@@ -136,6 +136,12 @@ Bitcoin:
 bc1qxjwlz3h7z5ec3nv7t5qr788v9km7cykxqz5wg2
 ```
 
+TON:
+
+```text
+UQCJIqP1Enc2OCanwi0BOijd6JZq0Ik2T0PxayswKGVHYkbH
+```
+
 </details>
 
 ## License
