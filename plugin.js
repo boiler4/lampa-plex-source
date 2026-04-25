@@ -109,6 +109,10 @@
                     "plexLoginWaiting": "Waiting for Plex authorization…",
                     "plexLoginSuccess": "Plex login successful",
                     "plexLoginFailed": "Plex login failed",
+                    "plexServerSaved": "Plex server saved",
+                    "plexServerDiscovering": "Looking for Plex server…",
+                    "plexServerDiscoverFailed": "Could not auto-detect Plex server",
+                    "discoverServer": "Auto-detect Plex server",
                     "plexLoginExpired": "Plex login expired",
                     "plexLoginHelp": "Scan the QR code or open the Plex login URL, authorize the plugin, then return to Lampa.",
                     "clearToken": "Clear Plex token",
@@ -790,6 +794,10 @@
                     "plexLoginWaiting": "In attesa autorizzazione Plex…",
                     "plexLoginSuccess": "Login Plex riuscito",
                     "plexLoginFailed": "Login Plex fallito",
+                    "plexServerSaved": "Server Plex salvato",
+                    "plexServerDiscovering": "Cerco server Plex…",
+                    "plexServerDiscoverFailed": "Server Plex non rilevato automaticamente",
+                    "discoverServer": "Rileva server Plex",
                     "plexLoginExpired": "Login Plex scaduto",
                     "plexLoginHelp": "Scansiona il QR code o apri l’URL di login Plex, autorizza il plugin, poi torna in Lampa.",
                     "clearToken": "Cancella token Plex",
@@ -999,6 +1007,73 @@
         }).then(parsePlexAuthResponse);
     }
 
+    function plexAuthHeadersWithToken(token) {
+        var headers = plexAuthHeaders();
+        headers['Accept'] = 'application/xml, application/json;q=0.9, */*;q=0.8';
+        headers['X-Plex-Token'] = token;
+        return headers;
+    }
+
+    function parsePlexResources(text) {
+        var doc = new DOMParser().parseFromString(text, 'application/xml');
+        return Array.prototype.slice.call(doc.querySelectorAll('Device')).filter(function (device) {
+            return String(device.getAttribute('provides') || '').indexOf('server') >= 0;
+        }).map(function (device) {
+            return {
+                name: device.getAttribute('name') || device.getAttribute('clientIdentifier') || 'Plex',
+                owned: device.getAttribute('owned') === '1' || device.getAttribute('owned') === 'true',
+                connections: Array.prototype.slice.call(device.querySelectorAll('Connection')).map(function (c) {
+                    return {
+                        uri: String(c.getAttribute('uri') || '').replace(/\/$/, ''),
+                        local: c.getAttribute('local') === '1' || c.getAttribute('local') === 'true',
+                        relay: c.getAttribute('relay') === '1' || c.getAttribute('relay') === 'true',
+                        protocol: c.getAttribute('protocol') || ''
+                    };
+                }).filter(function (c) { return !!c.uri; })
+            };
+        }).filter(function (server) { return server.connections.length > 0; });
+    }
+
+    function bestPlexConnection(servers) {
+        if (!servers || !servers.length) return null;
+        servers.sort(function (a, b) { return (b.owned ? 1 : 0) - (a.owned ? 1 : 0); });
+        var prefs = [
+            function (c) { return c.local && !c.relay && c.protocol === 'https'; },
+            function (c) { return c.local && !c.relay; },
+            function (c) { return !c.relay && c.protocol === 'https'; },
+            function (c) { return !c.relay; },
+            function (c) { return true; }
+        ];
+        for (var sidx = 0; sidx < servers.length; sidx += 1) {
+            for (var pidx = 0; pidx < prefs.length; pidx += 1) {
+                for (var cidx = 0; cidx < servers[sidx].connections.length; cidx += 1) {
+                    var candidate = servers[sidx].connections[cidx];
+                    if (prefs[pidx](candidate)) return { server: servers[sidx], connection: candidate };
+                }
+            }
+        }
+        return null;
+    }
+
+    function discoverPlexServer(token) {
+        token = String(token || settings().plexToken || '').trim();
+        if (!token) return Promise.reject(new Error('missing-token'));
+        return fetch('https://plex.tv/api/resources?includeHttps=1&includeRelay=1', {
+            method: 'GET',
+            mode: 'cors',
+            headers: plexAuthHeadersWithToken(token)
+        }).then(function (resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.text();
+        }).then(function (text) {
+            var best = bestPlexConnection(parsePlexResources(text));
+            if (!best || !best.connection || !best.connection.uri) throw new Error('no-server');
+            save({ plexBase: best.connection.uri.replace(/\/$/, '') });
+            log('Plex server discovered', { name: best.server.name, uri: best.connection.uri, local: best.connection.local, relay: best.connection.relay });
+            return best;
+        });
+    }
+
     function plexOauthUrl(code) {
         var h = plexAuthHeaders();
         var params = new URLSearchParams();
@@ -1114,10 +1189,19 @@
                 }
                 checkPlexPin(pin.id).then(function (state) {
                     if (state && state.authToken) {
-                        save({ plexToken: String(state.authToken || '').trim() });
-                        ui.status(t('plexLoginSuccess'));
-                        noty(t('plexLoginSuccess'));
-                        setTimeout(function () { ui.close(); }, 1200);
+                        var token = String(state.authToken || '').trim();
+                        save({ plexToken: token });
+                        ui.status(t('plexServerDiscovering'));
+                        discoverPlexServer(token).then(function (best) {
+                            ui.status(t('plexLoginSuccess') + ': ' + (best.server.name || 'Plex'));
+                            noty(t('plexServerSaved') + ': ' + best.connection.uri);
+                            setTimeout(function () { ui.close(); }, 1600);
+                        }).catch(function (discoverErr) {
+                            log('Plex server discover failed', discoverErr && (discoverErr.stack || discoverErr.message || discoverErr));
+                            ui.status(t('plexLoginSuccess') + '. ' + t('plexServerDiscoverFailed'));
+                            noty(t('plexLoginSuccess') + ' / ' + t('plexServerDiscoverFailed'));
+                            setTimeout(function () { ui.close(); }, 2200);
+                        });
                         return;
                     }
                     setTimeout(poll, 2000);
@@ -1966,6 +2050,7 @@
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
         add({ type: 'static', name: component + '_info', field: { name: t('infoTitle'), description: t('infoText') } });
         add({ type: 'button', name: component + '_plex_base', field: { name: t('plexBase'), description: t('baseDescription') }, onChange: function () { promptText(t('plexBase'), 'http://192.168.1.10:32400', settings().plexBase, function (v) { save({ plexBase: v.trim().replace(/\/$/, '') }); noty(t('savedBase')); }); } });
+        add({ type: 'button', name: component + '_discover_server', field: { name: t('discoverServer') }, onChange: function () { noty(t('plexServerDiscovering')); discoverPlexServer().then(function (best) { noty(t('plexServerSaved') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server discover failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
         add({ type: 'button', name: component + '_plex_login', field: { name: t('plexLogin'), description: t('plexLoginDescription') }, onChange: function () { startPlexLogin(); } });
         add({ type: 'button', name: component + '_plex_token', field: { name: t('plexToken'), description: t('tokenDescription') }, onChange: function () { promptText(t('plexToken'), t('tokenPlaceholder'), settings().plexToken, function (v) { save({ plexToken: v.trim() }); noty(t('savedToken')); }); } });
         add({ type: 'button', name: component + '_clear_token', field: { name: t('clearToken') }, onChange: function () { save({ plexToken: '' }); noty(t('clearTokenDone')); } });
