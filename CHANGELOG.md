@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add optional Plex PIN/OAuth login flow from Lampa settings.
+- Add Plex server discovery and explicit server/connection selection.
 - Keep manual Plex token entry as an advanced/fallback option.
 - Add clear-token action.
 

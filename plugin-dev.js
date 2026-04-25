@@ -113,6 +113,11 @@
                     "plexServerDiscovering": "Looking for Plex server…",
                     "plexServerDiscoverFailed": "Could not auto-detect Plex server",
                     "discoverServer": "Auto-detect Plex server",
+                    "selectServer": "Select Plex server",
+                    "serverSelected": "Plex server selected",
+                    "localConnection": "local",
+                    "remoteConnection": "remote",
+                    "relayConnection": "relay",
                     "plexLoginExpired": "Plex login expired",
                     "plexLoginHelp": "Scan the QR code or open the Plex login URL, authorize the plugin, then return to Lampa.",
                     "clearToken": "Clear Plex token",
@@ -798,6 +803,11 @@
                     "plexServerDiscovering": "Cerco server Plex…",
                     "plexServerDiscoverFailed": "Server Plex non rilevato automaticamente",
                     "discoverServer": "Rileva server Plex",
+                    "selectServer": "Scegli server Plex",
+                    "serverSelected": "Server Plex selezionato",
+                    "localConnection": "locale",
+                    "remoteConnection": "remoto",
+                    "relayConnection": "relay",
                     "plexLoginExpired": "Login Plex scaduto",
                     "plexLoginHelp": "Scansiona il QR code o apri l’URL di login Plex, autorizza il plugin, poi torna in Lampa.",
                     "clearToken": "Cancella token Plex",
@@ -1055,7 +1065,7 @@
         return null;
     }
 
-    function discoverPlexServer(token) {
+    function listPlexServers(token) {
         token = String(token || settings().plexToken || '').trim();
         if (!token) return Promise.reject(new Error('missing-token'));
         return fetch('https://plex.tv/api/resources?includeHttps=1&includeRelay=1', {
@@ -1065,12 +1075,55 @@
         }).then(function (resp) {
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             return resp.text();
-        }).then(function (text) {
-            var best = bestPlexConnection(parsePlexResources(text));
-            if (!best || !best.connection || !best.connection.uri) throw new Error('no-server');
-            save({ plexBase: best.connection.uri.replace(/\/$/, '') });
-            log('Plex server discovered', { name: best.server.name, uri: best.connection.uri, local: best.connection.local, relay: best.connection.relay });
-            return best;
+        }).then(parsePlexResources);
+    }
+
+    function connectionMeta(connection) {
+        var parts = [];
+        parts.push(connection.local ? t('localConnection') : t('remoteConnection'));
+        if (connection.relay) parts.push(t('relayConnection'));
+        if (connection.protocol) parts.push(connection.protocol);
+        parts.push(connection.uri);
+        return parts.join(' · ');
+    }
+
+    function savePlexServerChoice(choice) {
+        if (!choice || !choice.connection || !choice.connection.uri) throw new Error('no-server');
+        save({ plexBase: choice.connection.uri.replace(/\/$/, '') });
+        log('Plex server selected', { name: choice.server.name, uri: choice.connection.uri, local: choice.connection.local, relay: choice.connection.relay });
+        return choice;
+    }
+
+    function choosePlexServer(token) {
+        return listPlexServers(token).then(function (servers) {
+            var choices = [];
+            servers.forEach(function (server) {
+                server.connections.forEach(function (connection) {
+                    choices.push({ server: server, connection: connection });
+                });
+            });
+            if (!choices.length) throw new Error('no-server');
+            if (choices.length === 1) return savePlexServerChoice(choices[0]);
+            return new Promise(function (resolve, reject) {
+                showList(t('selectServer'), '', choices.map(function (choice) {
+                    return {
+                        title: choice.server.name || 'Plex',
+                        meta: connectionMeta(choice.connection),
+                        onClick: function () {
+                            closeOverlay(false);
+                            try { resolve(savePlexServerChoice(choice)); }
+                            catch (e) { reject(e); }
+                        }
+                    };
+                }), { back: function () { closeOverlay(false); reject(new Error('cancelled')); } });
+            });
+        });
+    }
+
+    function discoverPlexServer(token) {
+        return listPlexServers(token).then(function (servers) {
+            var best = bestPlexConnection(servers);
+            return savePlexServerChoice(best);
         });
     }
 
@@ -1192,15 +1245,13 @@
                         var token = String(state.authToken || '').trim();
                         save({ plexToken: token });
                         ui.status(t('plexServerDiscovering'));
-                        discoverPlexServer(token).then(function (best) {
-                            ui.status(t('plexLoginSuccess') + ': ' + (best.server.name || 'Plex'));
-                            noty(t('plexServerSaved') + ': ' + best.connection.uri);
-                            setTimeout(function () { ui.close(); }, 1600);
+                        ui.close();
+                        noty(t('plexServerDiscovering'));
+                        choosePlexServer(token).then(function (best) {
+                            noty(t('serverSelected') + ': ' + best.connection.uri);
                         }).catch(function (discoverErr) {
-                            log('Plex server discover failed', discoverErr && (discoverErr.stack || discoverErr.message || discoverErr));
-                            ui.status(t('plexLoginSuccess') + '. ' + t('plexServerDiscoverFailed'));
+                            log('Plex server select failed', discoverErr && (discoverErr.stack || discoverErr.message || discoverErr));
                             noty(t('plexLoginSuccess') + ' / ' + t('plexServerDiscoverFailed'));
-                            setTimeout(function () { ui.close(); }, 2200);
                         });
                         return;
                     }
@@ -2050,7 +2101,7 @@
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
         add({ type: 'static', name: component + '_info', field: { name: t('infoTitle'), description: t('infoText') } });
         add({ type: 'button', name: component + '_plex_base', field: { name: t('plexBase'), description: t('baseDescription') }, onChange: function () { promptText(t('plexBase'), 'http://192.168.1.10:32400', settings().plexBase, function (v) { save({ plexBase: v.trim().replace(/\/$/, '') }); noty(t('savedBase')); }); } });
-        add({ type: 'button', name: component + '_discover_server', field: { name: t('discoverServer') }, onChange: function () { noty(t('plexServerDiscovering')); discoverPlexServer().then(function (best) { noty(t('plexServerSaved') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server discover failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
+        add({ type: 'button', name: component + '_discover_server', field: { name: t('selectServer') }, onChange: function () { noty(t('plexServerDiscovering')); choosePlexServer().then(function (best) { noty(t('serverSelected') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server select failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
         add({ type: 'button', name: component + '_plex_login', field: { name: t('plexLogin'), description: t('plexLoginDescription') }, onChange: function () { startPlexLogin(); } });
         add({ type: 'button', name: component + '_plex_token', field: { name: t('plexToken'), description: t('tokenDescription') }, onChange: function () { promptText(t('plexToken'), t('tokenPlaceholder'), settings().plexToken, function (v) { save({ plexToken: v.trim() }); noty(t('savedToken')); }); } });
         add({ type: 'button', name: component + '_clear_token', field: { name: t('clearToken') }, onChange: function () { save({ plexToken: '' }); noty(t('clearTokenDone')); } });
