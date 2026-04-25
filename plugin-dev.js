@@ -98,7 +98,12 @@
                     "copyDebugLog": "Скопировать лог",
                     "debugLogCopied": "Лог скопирован",
                     "openGithubIssue": "Открыть GitHub issue",
-                    "bugReportGuide": "Как отправить bug report: включите Debug, повторите ошибку, откройте этот лог, нажмите Copy log или Open GitHub issue. Если вы на TV, сфотографируйте этот экран или откройте issue с телефона/ПК и вставьте лог.",
+                    "bugReportFailed": "Не удалось отправить report",
+                    "bugReportSent": "Report отправлен",
+                    "bugReportPlaceholder": "Кратко опишите проблему",
+                    "bugReportDescription": "Описание проблемы",
+                    "sendBugReport": "Отправить report",
+                    "bugReportGuide": "Как отправить bug report: включите Debug, повторите ошибку, откройте этот лог и нажмите Send report. На TV можно ввести описание голосом/экранной клавиатурой. Если отправка недоступна — используйте Copy log или фото экрана.",
                     "showFallback": "Сериал",
                     "episodeFallback": "Эпизод",
                     "seasonFallback": "Сезон",
@@ -199,7 +204,12 @@
                     "copyDebugLog": "Copy log",
                     "debugLogCopied": "Log copied",
                     "openGithubIssue": "Open GitHub issue",
-                    "bugReportGuide": "How to report a bug: enable Debug, reproduce the issue, open this log, then use Copy log or Open GitHub issue. If you are on a TV, take a photo of this screen or open the issue from your phone/PC and paste the log.",
+                    "bugReportFailed": "Report failed",
+                    "bugReportSent": "Report sent",
+                    "bugReportPlaceholder": "Briefly describe the problem",
+                    "bugReportDescription": "Problem description",
+                    "sendBugReport": "Send report",
+                    "bugReportGuide": "How to report a bug: enable Debug, reproduce the issue, open this log and press Send report. On TV you can enter the description by voice/on-screen keyboard. If sending is unavailable, use Copy log or a photo of the screen.",
                     "showFallback": "Show",
                     "episodeFallback": "Episode",
                     "seasonFallback": "Season",
@@ -295,6 +305,12 @@
                     "connectionFail": "Помилка підключення Plex",
                     "debugTitle": "Plex Source debug — останні логи",
                     "debugEmpty": "Логів ще немає. Відкрийте картку фільму/серіалу і спробуйте ще раз.",
+                    "bugReportGuide": "Як надіслати bug report: увімкніть Debug, повторіть проблему, відкрийте цей лог і натисніть Send report. На TV можна ввести опис голосом/екранною клавіатурою. Якщо надсилання недоступне — використайте Copy log або фото екрана.",
+                    "bugReportFailed": "Не вдалося надіслати report",
+                    "bugReportSent": "Report надіслано",
+                    "bugReportPlaceholder": "Коротко опишіть проблему",
+                    "bugReportDescription": "Опис проблеми",
+                    "sendBugReport": "Надіслати report",
                     "showFallback": "Серіал",
                     "episodeFallback": "Епізод",
                     "seasonFallback": "Сезон",
@@ -390,6 +406,12 @@
                     "connectionFail": "Памылка падключэння Plex",
                     "debugTitle": "Plex Source debug — апошнія логи",
                     "debugEmpty": "Логаў пакуль няма. Адкрыйце картку фільма/серыяла і паспрабуйце зноў.",
+                    "bugReportGuide": "Як адправіць bug report: уключыце Debug, паўтарыце праблему, адкрыйце гэты лог і націсніце Send report. На TV можна ўвесці апісанне голасам/экраннай клавіятурай. Калі адпраўка недаступная — выкарыстоўвайце Copy log або фота экрана.",
+                    "bugReportFailed": "Не ўдалося адправіць report",
+                    "bugReportSent": "Report адпраўлены",
+                    "bugReportPlaceholder": "Коратка апішыце праблему",
+                    "bugReportDescription": "Апісанне праблемы",
+                    "sendBugReport": "Адправіць report",
                     "showFallback": "Серыял",
                     "episodeFallback": "Эпізод",
                     "seasonFallback": "Сезон",
@@ -485,6 +507,12 @@
                     "connectionFail": "Plex 连接失败",
                     "debugTitle": "Plex Source 调试 — 最新日志",
                     "debugEmpty": "暂无日志。打开电影/剧集页面后再试。",
+                    "bugReportGuide": "如何报告 bug：启用 Debug，重现问题，打开此日志并按 Send report。在 TV 上可用语音/屏幕键盘输入描述。如果无法发送，请使用 Copy log 或拍屏。",
+                    "bugReportFailed": "报告发送失败",
+                    "bugReportSent": "报告已发送",
+                    "bugReportPlaceholder": "简要描述问题",
+                    "bugReportDescription": "问题描述",
+                    "sendBugReport": "发送报告",
                     "showFallback": "剧集",
                     "episodeFallback": "集",
                     "seasonFallback": "季",
@@ -580,6 +608,12 @@
                     "connectionFail": "Falha na ligação Plex",
                     "debugTitle": "Plex Source debug — logs recentes",
                     "debugEmpty": "Ainda não há logs. Abra um filme/série e tente de novo.",
+                    "bugReportGuide": "Como reportar bug: ative Debug, reproduza o problema, abra este log e pressione Send report. Na TV você pode usar voz/teclado na tela. Se o envio não estiver disponível, use Copy log ou foto da tela.",
+                    "bugReportFailed": "Falha ao enviar relatório",
+                    "bugReportSent": "Relatório enviado",
+                    "bugReportPlaceholder": "Descreva brevemente o problema",
+                    "bugReportDescription": "Descrição do problema",
+                    "sendBugReport": "Enviar relatório",
                     "showFallback": "Série",
                     "episodeFallback": "Episódio",
                     "seasonFallback": "Temporada",
@@ -675,6 +709,12 @@
                     "connectionFail": "Грешка при Plex връзката",
                     "debugTitle": "Plex Source debug — последни логове",
                     "debugEmpty": "Все още няма логове. Отворете филм/сериал и опитайте пак.",
+                    "bugReportGuide": "Как да изпратите bug report: включете Debug, повторете проблема, отворете този лог и натиснете Send report. На TV може да въведете описание с глас/екранна клавиатура. Ако изпращането не е достъпно — използвайте Copy log или снимка.",
+                    "bugReportFailed": "Неуспешно изпращане",
+                    "bugReportSent": "Report изпратен",
+                    "bugReportPlaceholder": "Опишете накратко проблема",
+                    "bugReportDescription": "Описание на проблема",
+                    "sendBugReport": "Изпрати report",
                     "showFallback": "Сериал",
                     "episodeFallback": "Епизод",
                     "seasonFallback": "Сезон",
@@ -770,6 +810,12 @@
                     "connectionFail": "חיבור Plex נכשל",
                     "debugTitle": "Plex Source debug — לוגים אחרונים",
                     "debugEmpty": "אין לוגים עדיין. פתח סרט/סדרה ונסה שוב.",
+                    "bugReportGuide": "איך לדווח על באג: הפעל Debug, שחזר את הבעיה, פתח את הלוג ולחץ Send report. בטלוויזיה אפשר להזין תיאור בקול/מקלדת מסך. אם שליחה לא זמינה — השתמש ב-Copy log או צילום מסך.",
+                    "bugReportFailed": "שליחת הדוח נכשלה",
+                    "bugReportSent": "הדוח נשלח",
+                    "bugReportPlaceholder": "תאר בקצרה את הבעיה",
+                    "bugReportDescription": "תיאור הבעיה",
+                    "sendBugReport": "שלח דוח",
                     "showFallback": "סדרה",
                     "episodeFallback": "פרק",
                     "seasonFallback": "עונה",
@@ -865,6 +911,12 @@
                     "connectionFail": "Plex připojení selhalo",
                     "debugTitle": "Plex Source debug — poslední logy",
                     "debugEmpty": "Zatím žádné logy. Otevřete kartu filmu/seriálu a zkuste znovu.",
+                    "bugReportGuide": "Jak nahlásit chybu: zapněte Debug, zopakujte problém, otevřete tento log a stiskněte Send report. Na TV lze zadat popis hlasem/klávesnicí na obrazovce. Pokud odeslání není dostupné, použijte Copy log nebo fotku obrazovky.",
+                    "bugReportFailed": "Odeslání selhalo",
+                    "bugReportSent": "Report odeslán",
+                    "bugReportPlaceholder": "Krátce popište problém",
+                    "bugReportDescription": "Popis problému",
+                    "sendBugReport": "Odeslat report",
                     "showFallback": "Seriál",
                     "episodeFallback": "Epizoda",
                     "seasonFallback": "Sezóna",
@@ -960,6 +1012,12 @@
                     "connectionFail": "Conexiune Plex eșuată",
                     "debugTitle": "Plex Source debug — ultimele loguri",
                     "debugEmpty": "Nu există loguri încă. Deschide un film/serial și încearcă din nou.",
+                    "bugReportGuide": "Cum raportezi un bug: activează Debug, reprodu problema, deschide logul și apasă Send report. Pe TV poți introduce descrierea vocal/cu tastatura pe ecran. Dacă trimiterea nu e disponibilă, folosește Copy log sau o poză a ecranului.",
+                    "bugReportFailed": "Trimiterea a eșuat",
+                    "bugReportSent": "Report trimis",
+                    "bugReportPlaceholder": "Descrie pe scurt problema",
+                    "bugReportDescription": "Descriere problemă",
+                    "sendBugReport": "Trimite report",
                     "showFallback": "Serial",
                     "episodeFallback": "Episod",
                     "seasonFallback": "Sezon",
@@ -1055,6 +1113,12 @@
                     "connectionFail": "Échec de connexion Plex",
                     "debugTitle": "Plex Source debug — derniers journaux",
                     "debugEmpty": "Aucun journal pour le moment. Ouvrez une fiche film/série puis réessayez.",
+                    "bugReportGuide": "Comment signaler un bug : activez Debug, reproduisez le problème, ouvrez ce log et appuyez sur Send report. Sur TV vous pouvez saisir la description à la voix/clavier écran. Si l’envoi est indisponible, utilisez Copy log ou une photo de l’écran.",
+                    "bugReportFailed": "Échec de l’envoi",
+                    "bugReportSent": "Report envoyé",
+                    "bugReportPlaceholder": "Décrivez brièvement le problème",
+                    "bugReportDescription": "Description du problème",
+                    "sendBugReport": "Envoyer report",
                     "showFallback": "Série",
                     "episodeFallback": "Épisode",
                     "seasonFallback": "Saison",
@@ -1155,7 +1219,12 @@
                     "copyDebugLog": "Copia log",
                     "debugLogCopied": "Log copiato",
                     "openGithubIssue": "Apri issue GitHub",
-                    "bugReportGuide": "Come inviare un bug report: attiva Debug, riproduci il problema, apri questo log, poi usa Copia log o Apri issue GitHub. Se sei su TV, fotografa questa schermata oppure apri la issue da telefono/PC e incolla il log.",
+                    "bugReportFailed": "Invio report fallito",
+                    "bugReportSent": "Report inviato",
+                    "bugReportPlaceholder": "Descrivi brevemente il problema",
+                    "bugReportDescription": "Descrizione problema",
+                    "sendBugReport": "Invia report",
+                    "bugReportGuide": "Come inviare un bug report: attiva Debug, riproduci il problema, apri questo log e premi Send report. Da TV puoi inserire la descrizione con comando vocale/tastiera a schermo. Se l’invio non è disponibile, usa Copia log o una foto dello schermo.",
                     "showFallback": "Serie",
                     "episodeFallback": "Episodio",
                     "seasonFallback": "Stagione",
@@ -1281,6 +1350,57 @@
         }).join('\n\n') : t('debugEmpty');
     }
 
+
+    function defaultReportEndpoint() {
+        try {
+            if (window.location && window.location.hostname) {
+                return window.location.protocol + '//' + window.location.hostname + ':8090/report';
+            }
+        }
+        catch (e) {}
+        return '';
+    }
+
+    function sendBugReport(description) {
+        var endpoint = defaultReportEndpoint();
+        if (!endpoint) return Promise.reject(new Error('missing-report-endpoint'));
+        var cfg = settings();
+        var payload = {
+            plugin: 'plex-source',
+            kind: 'bug-report',
+            version: '0.1.0-beta-dev',
+            createdAt: new Date().toISOString(),
+            description: String(description || ''),
+            connection: {
+                base: cfg.plexBase,
+                serverName: cfg.plexServerName,
+                meta: cfg.plexConnectionMeta,
+                relay: cfg.plexConnectionRelay
+            },
+            lampa: {
+                href: (window.location && window.location.href) || '',
+                userAgent: (window.navigator && window.navigator.userAgent) || ''
+            },
+            debugLog: debugText()
+        };
+        return fetch(endpoint, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(function (resp) {
+            if (!resp.ok && resp.status !== 204) throw new Error('HTTP ' + resp.status);
+            return true;
+        });
+    }
+
+    function askAndSendBugReport() {
+        promptText(t('bugReportDescription'), t('bugReportPlaceholder'), '', function (value) {
+            sendBugReport(value).then(function () { noty(t('bugReportSent')); })
+                .catch(function (err) { log('bug report send failed', err && (err.stack || err.message || err)); noty(t('bugReportFailed')); });
+        });
+    }
+
     function showDebugPanel() {
         var old = document.querySelector('.plex-source-debug-overlay');
         if (old) old.remove();
@@ -1322,6 +1442,10 @@
         }
         var actions = document.createElement('div');
         actions.style.cssText = 'position:sticky;top:0;float:right;z-index:2;display:flex;gap:8px;align-items:center;';
+        var send = document.createElement('button');
+        send.textContent = t('sendBugReport');
+        send.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
+        send.onclick = askAndSendBugReport;
         var copy = document.createElement('button');
         copy.textContent = t('copyDebugLog');
         copy.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
@@ -1344,6 +1468,7 @@
         close.textContent = 'Close';
         close.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
         close.onclick = closeDebug;
+        actions.appendChild(send);
         actions.appendChild(copy);
         actions.appendChild(issue);
         actions.appendChild(close);
