@@ -1776,24 +1776,42 @@
 
     function annotateInstalledPlugin() {
         try {
-            if (!Lampa.Plugins || !Lampa.Plugins.get || !Lampa.Plugins.save) return;
             var changed = false;
-            var list = Lampa.Plugins.get();
-            var urls = [];
+            var currentSrc = '';
             try {
-                if (document && document.currentScript && document.currentScript.src) urls.push(document.currentScript.src);
+                if (document && document.currentScript && document.currentScript.src) currentSrc = String(document.currentScript.src || '');
             } catch (e) {}
-            urls.push('lampa-plex-source');
-            list.forEach(function (plug) {
-                var url = String((plug && (plug.url || plug.link)) || '');
-                if (!plug || !url) return;
-                var matched = urls.some(function (part) { return url.indexOf(part) >= 0; });
-                if (!matched) return;
-                if (plug.name !== 'Plex Source') { plug.name = 'Plex Source'; changed = true; }
-                if (plug.author !== 'boiler4') { plug.author = 'boiler4'; changed = true; }
-                if (plug.descr !== 'Frontend-only Plex source for Lampa') { plug.descr = 'Frontend-only Plex source for Lampa'; changed = true; }
-            });
-            if (changed) Lampa.Plugins.save();
+            var markers = [
+                'lampa-plex-source',
+                'plugin.js',
+                currentSrc
+            ].filter(Boolean);
+            function patchList(list) {
+                if (!Array.isArray(list)) return false;
+                var touched = false;
+                list.forEach(function (plug) {
+                    var url = String((plug && (plug.url || plug.link)) || '');
+                    if (!plug || !url) return;
+                    var matched = markers.some(function (part) { return part && url.indexOf(part) >= 0; });
+                    if (!matched) return;
+                    if (plug.name !== 'Plex Source') { plug.name = 'Plex Source'; touched = true; }
+                    if (plug.author !== 'boiler4') { plug.author = 'boiler4'; touched = true; }
+                    if (plug.descr !== 'Frontend-only Plex source for Lampa') { plug.descr = 'Frontend-only Plex source for Lampa'; touched = true; }
+                });
+                return touched;
+            }
+            if (Lampa.Plugins && Lampa.Plugins.get && Lampa.Plugins.save) {
+                changed = patchList(Lampa.Plugins.get()) || changed;
+                if (changed) Lampa.Plugins.save();
+            }
+            try {
+                var stored = Lampa.Storage.get('plugins', '[]');
+                if (patchList(stored)) {
+                    Lampa.Storage.set('plugins', stored);
+                    changed = true;
+                }
+            } catch (storageError) {}
+            log('annotate installed plugin', { changed: changed, src: currentSrc });
         }
         catch (e) { log('annotate installed plugin failed', e && (e.stack || e.message || e)); }
     }
