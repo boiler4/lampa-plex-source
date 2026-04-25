@@ -1802,7 +1802,8 @@
         catch (e) {}
     }
 
-    function annotateInstalledPlugin() {        try {
+    function annotateInstalledPlugin() {
+        try {
             var changed = false;
             var currentSrc = '';
             try {
