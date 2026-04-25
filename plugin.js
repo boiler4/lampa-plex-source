@@ -1013,6 +1013,10 @@
         return 'https://app.plex.tv/auth/#!?' + params.toString();
     }
 
+    function qrCodeUrl(value) {
+        return 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=' + encodeURIComponent(value);
+    }
+
     function showPlexLoginOverlay(pin, url, onClose) {
         var old = document.querySelector('.plex-source-login-overlay');
         if (old) old.remove();
@@ -1032,13 +1036,19 @@
         help.textContent = t('plexLoginHelp');
         help.style.cssText = 'font-size:16px;opacity:.9;max-width:760px;margin:0 auto 20px;line-height:1.35;';
         overlay.appendChild(help);
-        if (pin.qr) {
-            var img = document.createElement('img');
-            img.src = pin.qr;
-            img.alt = 'Plex QR';
-            img.style.cssText = 'width:220px;height:220px;background:#fff;padding:10px;border-radius:10px;margin:10px auto;display:block;';
-            overlay.appendChild(img);
-        }
+        var img = document.createElement('img');
+        img.src = qrCodeUrl(url);
+        img.alt = 'Plex QR';
+        img.style.cssText = 'width:240px;height:240px;background:#fff;padding:10px;border-radius:10px;margin:10px auto;display:block;';
+        img.onerror = function () {
+            if (pin.qr && img.src !== pin.qr) img.src = pin.qr;
+            else img.style.display = 'none';
+        };
+        overlay.appendChild(img);
+        var linkShort = document.createElement('div');
+        linkShort.textContent = 'https://plex.tv/link';
+        linkShort.style.cssText = 'font-size:20px;font-weight:bold;margin:10px 0 2px;';
+        overlay.appendChild(linkShort);
         var code = document.createElement('div');
         code.textContent = t('plexLoginCode') + ': ' + (pin.code || '');
         code.style.cssText = 'font-size:22px;font-weight:bold;letter-spacing:1px;margin:16px 0;';
