@@ -978,7 +978,7 @@
     }
 
     function createPlexPin() {
-        return fetch('https://plex.tv/api/v2/pins?strong=true', {
+        return fetch('https://plex.tv/api/v2/pins', {
             method: 'POST',
             mode: 'cors',
             headers: plexAuthHeaders()
@@ -1079,7 +1079,7 @@
         noty(t('plexLoginWaiting'));
         createPlexPin().then(function (pin) {
             if (!pin || !pin.id || !pin.code) throw new Error('missing-pin');
-            var url = plexOauthUrl(pin.code);
+            var url = 'https://plex.tv/link';
             var ui = showPlexLoginOverlay(pin, url, function () { cancelled = true; });
             var started = Date.now();
             function poll() {
