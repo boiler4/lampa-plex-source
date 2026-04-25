@@ -118,7 +118,7 @@ Recommended checks before publishing:
 
 ```bash
 node -e "new Function(require('fs').readFileSync('plugin.js','utf8')); console.log('syntax ok')"
-grep -RInE "X-Plex-Token|password|192\.168\.10|8090|log_collector" .
+grep -RInE "password|secret|private_key|gho_|X-Plex-Token=" .
 ```
 
 ## Support development
