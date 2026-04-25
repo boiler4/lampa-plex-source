@@ -121,21 +121,11 @@ node -e "new Function(require('fs').readFileSync('plugin.js','utf8')); console.l
 grep -RInE "X-Plex-Token|password|192\.168\.10|8090|log_collector" .
 ```
 
-## Roadmap ideas
+## Support development
 
-- More robust match diagnostics.
-- Optional minified release build.
-- Screenshots/GIFs for installation and settings.
-- Separate future plugin for explicit Plex → Lampa watch-state import, if desired.
+If Plex Source is useful to you, you can support development here:
 
-## Donations
-
-If this plugin helps you, donations are welcome:
-
-```text
-PayPal: https://paypal.me/YuryShapovalov
-```
-
+<a href="https://paypal.me/YuryShapovalov"><img src="assets/support-paypal.svg" alt="Support development via PayPal" width="240" height="48"></a>
 
 ## License
 
