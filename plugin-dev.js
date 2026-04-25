@@ -2077,6 +2077,24 @@
         return Lampa.Timeline.view(Lampa.Utils.hash(['plex-source', mediaType, id].join(':')));
     }
 
+
+    function probePlaybackUrl(url) {
+        var cfg = settings();
+        if (!cfg.debug || !cfg.plexConnectionRelay || !url) return;
+        fetch(url, { method: 'GET', mode: 'cors' }).then(function (resp) {
+            return resp.text().then(function (text) {
+                log('playback manifest probe', {
+                    ok: resp.ok,
+                    status: resp.status,
+                    contentType: resp.headers && resp.headers.get ? resp.headers.get('content-type') : '',
+                    firstLine: String(text || '').split('\n').slice(0, 3).join(' / ').slice(0, 300)
+                });
+            });
+        }).catch(function (err) {
+            log('playback manifest probe failed', err && (err.stack || err.message || err));
+        });
+    }
+
     function playItem(card, item) {
         var url = streamUrl(item);
         if (!url) {
@@ -2100,6 +2118,7 @@
         };
 
         log('play item', { relay: settings().plexConnectionRelay, base: settings().plexBase, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url) });
+        probePlaybackUrl(data.url);
         Lampa.Player.play(data);
         Lampa.Player.playlist([{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }]);
     }
