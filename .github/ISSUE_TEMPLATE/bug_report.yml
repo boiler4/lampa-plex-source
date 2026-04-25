@@ -1,59 +1,56 @@
 name: Bug report
-description: Report a Plex Source problem
+description: Report a Plex Source problem in the simplest possible way
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for testing Plex Source. Please remove private data before submitting.
-        Plex tokens should already be masked in plugin logs.
-  - type: input
-    id: lampa-device
-    attributes:
-      label: Lampa device / platform
-      placeholder: e.g. LG TV, Android TV, browser, Samsung TV
-  - type: input
-    id: lampa-version
-    attributes:
-      label: Lampa version
-      placeholder: e.g. 2.84
-  - type: input
-    id: plugin-url
-    attributes:
-      label: Plugin URL/version
-      placeholder: e.g. jsDelivr URL or commit hash
-  - type: dropdown
-    id: connection-type
-    attributes:
-      label: Plex connection selected
-      options:
-        - local/direct
-        - remote/direct
-        - remote/relay
-        - not sure
+        Thanks for testing Plex Source.
+
+        **Fastest way**
+        1. In Lampa: Plex Source settings → enable **Debug**.
+        2. Reproduce the problem.
+        3. Open **Debug log**.
+        4. Use **Copy log** or take a photo/screenshot if you are on a TV.
+        5. Paste the log/photo here.
+
+        Please do not worry if you cannot fill every field. A short description + debug log/photo is enough.
+        Plex tokens should be masked in plugin logs.
   - type: textarea
     id: problem
     attributes:
       label: What happened?
-      description: Describe the problem and what you expected instead.
+      description: One or two sentences are enough.
+      placeholder: e.g. Episodes are listed, but playback fails with manifestLoadError.
     validations:
       required: true
   - type: textarea
-    id: steps
-    attributes:
-      label: Steps to reproduce
-      placeholder: |
-        1. Open ...
-        2. Select ...
-        3. Play ...
-  - type: textarea
     id: debug-log
     attributes:
-      label: Debug log
-      description: In Lampa plugin settings enable Debug, reproduce the issue, open Debug log, then Copy log.
+      label: Debug log or photo
+      description: Paste the copied debug log here, or attach a photo/screenshot from the TV.
       render: text
-  - type: textarea
-    id: screenshots
+  - type: dropdown
+    id: connection-type
     attributes:
-      label: Screenshots / photos
-      description: Drag and drop images here if useful.
+      label: Plex connection selected, if known
+      options:
+        - not sure
+        - local/direct
+        - remote/direct
+        - remote/relay
+  - type: input
+    id: device
+    attributes:
+      label: Device/platform, if known
+      placeholder: e.g. LG TV, Android TV, Samsung TV, browser
+  - type: input
+    id: lampa-version
+    attributes:
+      label: Lampa version, if known
+      placeholder: e.g. 2.84
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin URL/version, if known
+      placeholder: e.g. jsDelivr URL or commit hash

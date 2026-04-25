@@ -96,6 +96,7 @@
                     "copyDebugLog": "Скопировать лог",
                     "debugLogCopied": "Лог скопирован",
                     "openGithubIssue": "Открыть GitHub issue",
+                    "bugReportGuide": "Как отправить bug report: включите Debug, повторите ошибку, откройте этот лог, нажмите Copy log или Open GitHub issue. Если вы на TV, сфотографируйте этот экран или откройте issue с телефона/ПК и вставьте лог.",
                     "showFallback": "Сериал",
                     "episodeFallback": "Эпизод",
                     "seasonFallback": "Сезон",
@@ -194,6 +195,7 @@
                     "copyDebugLog": "Copy log",
                     "debugLogCopied": "Log copied",
                     "openGithubIssue": "Open GitHub issue",
+                    "bugReportGuide": "How to report a bug: enable Debug, reproduce the issue, open this log, then use Copy log or Open GitHub issue. If you are on a TV, take a photo of this screen or open the issue from your phone/PC and paste the log.",
                     "showFallback": "Show",
                     "episodeFallback": "Episode",
                     "seasonFallback": "Season",
@@ -1129,6 +1131,7 @@
                     "copyDebugLog": "Copia log",
                     "debugLogCopied": "Log copiato",
                     "openGithubIssue": "Apri issue GitHub",
+                    "bugReportGuide": "Come inviare un bug report: attiva Debug, riproduci il problema, apri questo log, poi usa Copia log o Apri issue GitHub. Se sei su TV, fotografa questa schermata oppure apri la issue da telefono/PC e incolla il log.",
                     "showFallback": "Serie",
                     "episodeFallback": "Episodio",
                     "seasonFallback": "Stagione",
@@ -1280,7 +1283,7 @@
         issue.textContent = t('openGithubIssue');
         issue.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
         issue.onclick = function () {
-            var body = 'Debug log:\n\n```\n' + debugText() + '\n```';
+            var body = '## What happened?\n\nDescribe the issue in one or two sentences.\n\n## Device / connection\n\n- Device: \n- Lampa version: \n- Plex connection: ' + (settings().plexConnectionMeta || 'not sure') + '\n- Plugin URL/version: dev\n\n## Debug log\n\n```\n' + debugText() + '\n```';
             try { window.open('https://github.com/boiler4/lampa-plex-source/issues/new?title=' + encodeURIComponent('Plex Source debug log') + '&body=' + encodeURIComponent(body), '_blank'); }
             catch (e) {}
         };
@@ -1296,6 +1299,10 @@
         title.textContent = t('debugTitle');
         title.style.cssText = 'font-size:18px;font-weight:bold;margin-bottom:12px;';
         overlay.appendChild(title);
+        var guide = document.createElement('div');
+        guide.textContent = t('bugReportGuide');
+        guide.style.cssText = 'font-family:Arial,sans-serif;font-size:13px;line-height:1.35;white-space:normal;opacity:.85;margin:0 0 14px;max-width:900px;';
+        overlay.appendChild(guide);
         var body = document.createElement('div');
         body.textContent = debugText();
         overlay.appendChild(body);
