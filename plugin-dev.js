@@ -119,6 +119,8 @@
                     "localConnection": "local",
                     "remoteConnection": "remote",
                     "relayConnection": "relay",
+                    "directConnection": "direct",
+                    "recommendedConnection": "Recommended",
                     "plexLoginExpired": "Plex login expired",
                     "plexLoginHelp": "Scan the QR code or open the Plex login URL, authorize the plugin, then return to Lampa.",
                     "clearToken": "Clear Plex token",
@@ -810,6 +812,8 @@
                     "localConnection": "locale",
                     "remoteConnection": "remoto",
                     "relayConnection": "relay",
+                    "directConnection": "diretta",
+                    "recommendedConnection": "Consigliato",
                     "plexLoginExpired": "Login Plex scaduto",
                     "plexLoginHelp": "Scansiona il QR code o apri l’URL di login Plex, autorizza il plugin, poi torna in Lampa.",
                     "clearToken": "Cancella token Plex",
@@ -1080,12 +1084,31 @@
         }).then(parsePlexResources);
     }
 
-    function connectionMeta(connection) {
+    function connectionScore(choice) {
+        var c = choice.connection || {};
+        var score = 0;
+        if (c.local) score += 100;
+        if (!c.relay) score += 30;
+        if (c.protocol === 'https') score += 10;
+        if (choice.server && choice.server.owned) score += 5;
+        return score;
+    }
+
+    function shortUri(uri) {
+        try {
+            var u = new URL(uri);
+            return u.protocol + '//' + u.host;
+        }
+        catch (e) { return String(uri || '').replace(/^https?:\/\//, '').slice(0, 60); }
+    }
+
+    function connectionMeta(connection, recommended) {
         var parts = [];
+        if (recommended) parts.push(t('recommendedConnection'));
         parts.push(connection.local ? t('localConnection') : t('remoteConnection'));
-        if (connection.relay) parts.push(t('relayConnection'));
-        if (connection.protocol) parts.push(connection.protocol);
-        parts.push(connection.uri);
+        parts.push(connection.relay ? t('relayConnection') : t('directConnection'));
+        if (connection.protocol) parts.push(connection.protocol.toUpperCase());
+        parts.push(shortUri(connection.uri));
         return parts.join(' · ');
     }
 
@@ -1104,13 +1127,14 @@
                     choices.push({ server: server, connection: connection });
                 });
             });
+            choices.sort(function (a, b) { return connectionScore(b) - connectionScore(a); });
             if (!choices.length) throw new Error('no-server');
             if (choices.length === 1) return savePlexServerChoice(choices[0]);
             return new Promise(function (resolve, reject) {
-                showList(t('selectServer'), t('selectServerHelp'), choices.map(function (choice) {
+                showList(t('selectServer'), t('selectServerHelp'), choices.map(function (choice, index) {
                     return {
-                        title: choice.server.name || 'Plex',
-                        meta: connectionMeta(choice.connection),
+                        title: (index === 0 ? '★ ' : '') + (choice.server.name || 'Plex'),
+                        meta: connectionMeta(choice.connection, index === 0),
                         onClick: function () {
                             closeOverlay(false);
                             try { resolve(savePlexServerChoice(choice)); }
@@ -1548,7 +1572,8 @@
             '.plex-source-subtitle{opacity:.72;margin-bottom:18px}',
             '.plex-source-row{padding:14px 16px;border-radius:12px;background:#252525;margin:8px 0;cursor:pointer}',
             '.plex-source-row:hover,.plex-source-row.focus,.plex-source-row.active{background:#383838;box-shadow:inset 0 0 0 2px rgba(255,255,255,.45)}',
-            '.plex-source-meta{display:block;opacity:.65;font-size:13px;margin-top:4px}',
+            '.plex-source-meta{display:block;opacity:.72;font-size:13px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+            '.plex-source-row-title{display:block;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
             '.plex-source-close{float:right;cursor:pointer;opacity:.8;font-size:22px}',
             '.plex-source-overlay.shots{align-items:stretch;justify-content:stretch;background:linear-gradient(110deg,rgba(28,18,16,.96),rgba(40,30,28,.82))}',
             '.plex-source-shots{display:grid;grid-template-columns:300px 1fr;gap:28px;width:100%;height:100%;padding:34px;box-sizing:border-box;overflow:hidden}',
@@ -1729,6 +1754,14 @@
                 meta.className = 'plex-source-meta';
                 meta.textContent = row.meta;
                 el.appendChild(meta);
+            }
+            if (el.firstChild && el.firstChild.nodeType === 3) {
+                var titleWrap = document.createElement('span');
+                titleWrap.className = 'plex-source-row-title';
+                titleWrap.textContent = row.title;
+                el.textContent = '';
+                el.appendChild(titleWrap);
+                if (meta) el.appendChild(meta);
             }
             el.onclick = row.onClick;
             box.appendChild(el);
