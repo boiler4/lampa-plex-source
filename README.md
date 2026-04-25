@@ -50,7 +50,11 @@ In Lampa:
 
 ## How to get a Plex token
 
-One common way:
+Plex documents the official method here:
+
+[Finding an authentication token / X-Plex-Token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/)
+
+Short version:
 
 1. Open Plex Web.
 2. Open any movie or episode.
