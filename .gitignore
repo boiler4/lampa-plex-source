@@ -1,0 +1,10 @@
+# Development / local test helpers
+log_collector.py
+test-minimal.js
+*.good-*.js
+*.log
+
+# OS/editor noise
+.DS_Store
+.vscode/
+.idea/

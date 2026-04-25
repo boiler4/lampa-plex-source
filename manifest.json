@@ -1,0 +1,10 @@
+{
+  "name": "Plex Source",
+  "slug": "lampa-plex-source",
+  "version": "0.1.0-beta",
+  "description": "Frontend-only Plex source plugin for Lampa: movies, TV seasons/episodes, Plex watched state, and manual watched/unwatched actions.",
+  "entry": "plugin.js",
+  "author": "Yury",
+  "homepage": "https://github.com/boiler4/lampa-plex-source",
+  "license": "MIT"
+}
