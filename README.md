@@ -127,6 +127,17 @@ If Plex Source is useful to you, you can support development here:
 
 <a href="https://paypal.me/YuryShapovalov"><img src="assets/support-paypal.svg" alt="Support development via PayPal" width="240" height="48"></a>
 
+<details>
+<summary>Crypto donations</summary>
+
+Bitcoin:
+
+```text
+bc1qxjwlz3h7z5ec3nv7t5qr788v9km7cykxqz5wg2
+```
+
+</details>
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
