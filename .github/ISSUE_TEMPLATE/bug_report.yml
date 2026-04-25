@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a Plex Source problem
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Plex Source. Please remove private data before submitting.
+        Plex tokens should already be masked in plugin logs.
+  - type: input
+    id: lampa-device
+    attributes:
+      label: Lampa device / platform
+      placeholder: e.g. LG TV, Android TV, browser, Samsung TV
+  - type: input
+    id: lampa-version
+    attributes:
+      label: Lampa version
+      placeholder: e.g. 2.84
+  - type: input
+    id: plugin-url
+    attributes:
+      label: Plugin URL/version
+      placeholder: e.g. jsDelivr URL or commit hash
+  - type: dropdown
+    id: connection-type
+    attributes:
+      label: Plex connection selected
+      options:
+        - local/direct
+        - remote/direct
+        - remote/relay
+        - not sure
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Play ...
+  - type: textarea
+    id: debug-log
+    attributes:
+      label: Debug log
+      description: In Lampa plugin settings enable Debug, reproduce the issue, open Debug log, then Copy log.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / photos
+      description: Drag and drop images here if useful.
