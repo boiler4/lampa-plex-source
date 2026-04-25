@@ -65,6 +65,8 @@
                     "recommendedConnection": "Рекомендуется",
                     "clearToken": "Очистить token Plex",
                     "clearTokenDone": "Token Plex очищен",
+                    "clearPlexAccess": "Удалить доступ Plex",
+                    "clearPlexAccessDone": "Token, сервер и данные подключения очищены",
                     "matchLimit": "Максимум результатов",
                     "exactYear": "Только точный год",
                     "clientId": "Client Identifier",
@@ -164,6 +166,8 @@
                     "plexLoginHelp": "Scan the QR code or open the Plex login URL, authorize the plugin, then return to Lampa.",
                     "clearToken": "Clear Plex token",
                     "clearTokenDone": "Plex token cleared",
+                    "clearPlexAccess": "Remove Plex access",
+                    "clearPlexAccessDone": "Plex token, server and connection data cleared",
                     "matchLimit": "Maximum results",
                     "exactYear": "Exact year only",
                     "clientId": "Client identifier",
@@ -261,6 +265,8 @@
                     "recommendedConnection": "Рекомендовано",
                     "clearToken": "Очистити token Plex",
                     "clearTokenDone": "Token Plex очищено",
+                    "clearPlexAccess": "Видалити доступ Plex",
+                    "clearPlexAccessDone": "Token, сервер і дані підключення очищено",
                     "matchLimit": "Максимум результатів",
                     "exactYear": "Тільки точний рік",
                     "clientId": "Client Identifier",
@@ -354,6 +360,8 @@
                     "recommendedConnection": "Рэкамендуецца",
                     "clearToken": "Ачысціць token Plex",
                     "clearTokenDone": "Token Plex ачышчаны",
+                    "clearPlexAccess": "Выдаліць доступ Plex",
+                    "clearPlexAccessDone": "Token, сервер і даныя падключэння ачышчаны",
                     "matchLimit": "Максімум вынікаў",
                     "exactYear": "Толькі дакладны год",
                     "clientId": "Client Identifier",
@@ -447,6 +455,8 @@
                     "recommendedConnection": "推荐",
                     "clearToken": "清除 Plex token",
                     "clearTokenDone": "Plex token 已清除",
+                    "clearPlexAccess": "移除 Plex 访问",
+                    "clearPlexAccessDone": "Plex token、服务器和连接数据已清除",
                     "matchLimit": "最大结果数",
                     "exactYear": "仅精确年份",
                     "clientId": "客户端标识",
@@ -540,6 +550,8 @@
                     "recommendedConnection": "Recomendado",
                     "clearToken": "Limpar token Plex",
                     "clearTokenDone": "Token Plex limpo",
+                    "clearPlexAccess": "Remover acesso Plex",
+                    "clearPlexAccessDone": "Token, servidor e dados de conexão Plex limpos",
                     "matchLimit": "Máximo de resultados",
                     "exactYear": "Só ano exato",
                     "clientId": "Identificador do cliente",
@@ -633,6 +645,8 @@
                     "recommendedConnection": "Препоръчано",
                     "clearToken": "Изчисти Plex token",
                     "clearTokenDone": "Plex token изчистен",
+                    "clearPlexAccess": "Премахни Plex достъп",
+                    "clearPlexAccessDone": "Plex token, сървър и данни за връзка са изчистени",
                     "matchLimit": "Максимум резултати",
                     "exactYear": "Само точна година",
                     "clientId": "Client Identifier",
@@ -726,6 +740,8 @@
                     "recommendedConnection": "מומלץ",
                     "clearToken": "נקה Plex token",
                     "clearTokenDone": "Plex token נוקה",
+                    "clearPlexAccess": "הסר גישת Plex",
+                    "clearPlexAccessDone": "Plex token, שרת ונתוני חיבור נוקו",
                     "matchLimit": "מספר תוצאות מרבי",
                     "exactYear": "שנה מדויקת בלבד",
                     "clientId": "מזהה לקוח",
@@ -819,6 +835,8 @@
                     "recommendedConnection": "Doporučeno",
                     "clearToken": "Vymazat Plex token",
                     "clearTokenDone": "Plex token vymazán",
+                    "clearPlexAccess": "Odebrat přístup Plex",
+                    "clearPlexAccessDone": "Plex token, server a údaje připojení byly vymazány",
                     "matchLimit": "Maximum výsledků",
                     "exactYear": "Pouze přesný rok",
                     "clientId": "Identifikátor klienta",
@@ -912,6 +930,8 @@
                     "recommendedConnection": "Recomandat",
                     "clearToken": "Șterge token Plex",
                     "clearTokenDone": "Token Plex șters",
+                    "clearPlexAccess": "Elimină accesul Plex",
+                    "clearPlexAccessDone": "Tokenul, serverul și datele conexiunii Plex au fost șterse",
                     "matchLimit": "Număr maxim rezultate",
                     "exactYear": "Doar anul exact",
                     "clientId": "Identificator client",
@@ -1005,6 +1025,8 @@
                     "recommendedConnection": "Recommandé",
                     "clearToken": "Effacer le token Plex",
                     "clearTokenDone": "Token Plex effacé",
+                    "clearPlexAccess": "Supprimer l’accès Plex",
+                    "clearPlexAccessDone": "Token, serveur et données de connexion Plex effacés",
                     "matchLimit": "Nombre maximal de résultats",
                     "exactYear": "Année exacte uniquement",
                     "clientId": "Identifiant client",
@@ -1100,6 +1122,8 @@
                     "plexLoginHelp": "Scansiona il QR code o apri l’URL di login Plex, autorizza il plugin, poi torna in Lampa.",
                     "clearToken": "Cancella token Plex",
                     "clearTokenDone": "Token Plex cancellato",
+                    "clearPlexAccess": "Rimuovi accesso Plex",
+                    "clearPlexAccessDone": "Token, server e dati connessione Plex cancellati",
                     "matchLimit": "Numero massimo risultati",
                     "exactYear": "Solo anno esatto",
                     "clientId": "Identificatore client",
@@ -1212,6 +1236,18 @@
         setTimeout(function () { try { addSettings(); } catch (e) {} }, 80);
     }
 
+    function clearPlexAccess() {
+        save({
+            plexBase: '',
+            plexToken: '',
+            plexServerName: '',
+            plexConnectionMeta: '',
+            plexConnectionRelay: false
+        });
+        refreshSettingsSoon();
+        noty(t('clearPlexAccessDone'));
+    }
+
     function maskTokenUrl(url) {
         return String(url || '').replace(/(X-Plex-Token=)[^&]+/g, '$1***');
     }
@@ -1255,14 +1291,32 @@
             document.removeEventListener('keydown', debugKeyHandler, true);
             overlay.remove();
         }
+        function debugButtons() { return Array.prototype.slice.call(overlay.querySelectorAll('button')); }
+        function focusDebugButton(delta) {
+            var buttons = debugButtons();
+            if (!buttons.length) return;
+            var index = buttons.indexOf(document.activeElement);
+            if (index < 0) index = 0;
+            else index = (index + delta + buttons.length) % buttons.length;
+            try { buttons[index].focus(); } catch (e) {}
+        }
         function debugKeyHandler(event) {
             var key = event.key || event.code || '';
             var code = event.keyCode || event.which;
+            var handled = false;
             if (key === 'Backspace' || key === 'Escape' || key === 'Esc' || key === 'BrowserBack' || code === 8 || code === 27 || code === 461 || code === 10009) {
+                closeDebug();
+                handled = true;
+            }
+            else if (key === 'ArrowLeft' || key === 'Left' || code === 37) { focusDebugButton(-1); handled = true; }
+            else if (key === 'ArrowRight' || key === 'Right' || code === 39) { focusDebugButton(1); handled = true; }
+            else if (key === 'ArrowDown' || key === 'Down' || code === 40) { overlay.scrollTop += Math.max(80, Math.round(window.innerHeight * 0.25)); handled = true; }
+            else if (key === 'ArrowUp' || key === 'Up' || code === 38) { overlay.scrollTop -= Math.max(80, Math.round(window.innerHeight * 0.25)); handled = true; }
+            else if (key === 'Enter' || key === 'OK' || code === 13) { if (document.activeElement && document.activeElement.click) document.activeElement.click(); handled = true; }
+            if (handled) {
                 event.preventDefault();
                 event.stopPropagation();
                 if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-                closeDebug();
                 return false;
             }
         }
@@ -1283,8 +1337,7 @@
         issue.textContent = t('openGithubIssue');
         issue.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
         issue.onclick = function () {
-            var body = '## What happened?\n\nDescribe the issue in one or two sentences.\n\n## Device / connection\n\n- Device: \n- Lampa version: \n- Plex connection: ' + (settings().plexConnectionMeta || 'not sure') + '\n- Plugin URL/version: dev\n\n## Debug log\n\n```\n' + debugText() + '\n```';
-            try { window.open('https://github.com/boiler4/lampa-plex-source/issues/new?title=' + encodeURIComponent('Plex Source debug log') + '&body=' + encodeURIComponent(body), '_blank'); }
+            try { window.open('https://github.com/boiler4/lampa-plex-source/issues/new?template=bug_report.yml', '_blank'); }
             catch (e) {}
         };
         var close = document.createElement('button');
@@ -2515,7 +2568,8 @@
         add({ type: 'title', name: component + '_title_manual', field: { name: t('manualSetupTitle') } });
         add({ type: 'button', name: component + '_plex_base', field: { name: t('plexBase'), description: t('baseDescription') }, onChange: function () { promptText(t('plexBase'), 'http://192.168.1.10:32400', settings().plexBase, function (v) { save({ plexBase: v.trim().replace(/\/$/, '') }); noty(t('savedBase')); }); } });
         add({ type: 'button', name: component + '_plex_token', field: { name: t('plexToken'), description: t('tokenDescription') }, onChange: function () { promptText(t('plexToken'), t('tokenPlaceholder'), settings().plexToken, function (v) { save({ plexToken: v.trim() }); noty(t('savedToken')); }); } });
-        add({ type: 'button', name: component + '_clear_token', field: { name: t('clearToken') }, onChange: function () { save({ plexToken: '' }); noty(t('clearTokenDone')); } });
+        add({ type: 'button', name: component + '_clear_token', field: { name: t('clearToken') }, onChange: function () { save({ plexToken: '' }); noty(t('clearTokenDone')); refreshSettingsSoon(); } });
+        add({ type: 'button', name: component + '_clear_plex_access', field: { name: t('clearPlexAccess') }, onChange: function () { clearPlexAccess(); } });
         add({ type: 'static', name: component + '_token_help', field: { name: t('tokenHelp'), description: t('tokenHelpText') } });
 
         add({ type: 'title', name: component + '_title_search', field: { name: t('searchTitle') } });
