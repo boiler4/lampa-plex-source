@@ -17,6 +17,7 @@
         plexServerName: '',
         plexConnectionMeta: '',
         plexConnectionRelay: false,
+        serverMode: 'single',
         clientId: 'lampa-plex-source',
         matchLimit: 5,
         showOnlyExactYear: false,
@@ -98,6 +99,8 @@
                     "copyDebugLog": "Скопировать лог",
                     "debugLogCopied": "Лог скопирован",
                     "openGithubIssue": "Открыть GitHub issue",
+                    "showBugReportQr": "QR для bug report",
+                    "bugReportQrTitle": "Сканируйте QR, чтобы открыть GitHub issue",
                     "bugReportFailed": "Не удалось отправить report",
                     "bugReportSent": "Report отправлен",
                     "bugReportPlaceholder": "Кратко опишите проблему",
@@ -204,6 +207,8 @@
                     "copyDebugLog": "Copy log",
                     "debugLogCopied": "Log copied",
                     "openGithubIssue": "Open GitHub issue",
+                    "showBugReportQr": "Bug report QR",
+                    "bugReportQrTitle": "Scan QR to open GitHub issue",
                     "bugReportFailed": "Report failed",
                     "bugReportSent": "Report sent",
                     "bugReportPlaceholder": "Briefly describe the problem",
@@ -1219,6 +1224,8 @@
                     "copyDebugLog": "Copia log",
                     "debugLogCopied": "Log copiato",
                     "openGithubIssue": "Apri issue GitHub",
+                    "showBugReportQr": "QR bug report",
+                    "bugReportQrTitle": "Scansiona il QR per aprire una issue GitHub",
                     "bugReportFailed": "Invio report fallito",
                     "bugReportSent": "Report inviato",
                     "bugReportPlaceholder": "Descrivi brevemente il problema",
@@ -1286,6 +1293,7 @@
             plexServerName: String(get('plexServerName', DEFAULTS.plexServerName) || '').trim(),
             plexConnectionMeta: String(get('plexConnectionMeta', DEFAULTS.plexConnectionMeta) || '').trim(),
             plexConnectionRelay: boolValue('plexConnectionRelay', DEFAULTS.plexConnectionRelay),
+            serverMode: String(get('serverMode', DEFAULTS.serverMode) || DEFAULTS.serverMode),
             clientId: String(get('clientId', DEFAULTS.clientId) || DEFAULTS.clientId).trim(),
             matchLimit: parseInt(get('matchLimit', DEFAULTS.matchLimit), 10) || DEFAULTS.matchLimit,
             showOnlyExactYear: boolValue('showOnlyExactYear', DEFAULTS.showOnlyExactYear),
@@ -1401,38 +1409,107 @@
         });
     }
 
+    function bugReportIssueUrl() {
+        return 'https://github.com/boiler4/lampa-plex-source/issues/new?template=bug_report.yml';
+    }
+
+    function showBugReportQr() {
+        var old = document.querySelector('.plex-source-qr-overlay');
+        if (old) old.remove();
+        var overlay = document.createElement('div');
+        overlay.className = 'plex-source-overlay plex-source-qr-overlay';
+        var box = document.createElement('div');
+        box.className = 'plex-source-box';
+        box.style.textAlign = 'center';
+        box.style.maxWidth = '520px';
+        var title = document.createElement('div');
+        title.textContent = t('bugReportQrTitle');
+        title.className = 'plex-source-title';
+        title.style.marginBottom = '16px';
+        var img = document.createElement('img');
+        img.src = qrCodeUrl(bugReportIssueUrl());
+        img.style.cssText = 'width:280px;height:280px;background:#fff;border-radius:12px;padding:10px;';
+        var url = document.createElement('div');
+        url.textContent = bugReportIssueUrl();
+        url.style.cssText = 'font-size:12px;opacity:.75;margin-top:14px;word-break:break-all;';
+        var hint = document.createElement('div');
+        hint.textContent = 'Back/Esc closes. Attach a photo of the debug screen or paste Copy log.';
+        hint.className = 'plex-source-subtitle';
+        hint.style.marginTop = '12px';
+        function closeQr(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            }
+            document.removeEventListener('keydown', keyHandler, true);
+            overlay.remove();
+        }
+        function keyHandler(event) {
+            var key = event.key || event.code || '';
+            var code = event.keyCode || event.which;
+            if (key === 'Backspace' || key === 'Escape' || key === 'Esc' || key === 'BrowserBack' || key === 'Enter' || code === 8 || code === 13 || code === 27 || code === 461 || code === 10009) closeQr(event);
+        }
+        overlay.onclick = closeQr;
+        box.onclick = function (event) { event.stopPropagation(); };
+        box.appendChild(title);
+        box.appendChild(img);
+        box.appendChild(url);
+        box.appendChild(hint);
+        overlay.appendChild(box);
+        document.addEventListener('keydown', keyHandler, true);
+        document.body.appendChild(overlay);
+    }
+
+    function copyDebugLog() {
+        var text = debugText();
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text);
+            else window.prompt(t('copyDebugLog'), text);
+            noty(t('debugLogCopied'));
+        } catch (e) { window.prompt(t('copyDebugLog'), text); }
+    }
+
+    function showDebugActions(closeDebug) {
+        var items = [
+            { title: t('copyDebugLog'), action: 'copy' },
+            { title: t('showBugReportQr'), action: 'qr' },
+            { title: t('openGithubIssue'), action: 'issue' },
+            { title: t('sendBugReport'), action: 'send' },
+            { title: 'Close', action: 'close' }
+        ];
+        function run(item) {
+            if (item.action === 'copy') copyDebugLog();
+            else if (item.action === 'qr') showBugReportQr();
+            else if (item.action === 'issue') { try { window.open(bugReportIssueUrl(), '_blank'); } catch (e) {} }
+            else if (item.action === 'send') askAndSendBugReport();
+            else if (item.action === 'close' && closeDebug) closeDebug();
+        }
+        if (showNativeSelect(t('debugTitle'), items, run, function () {})) return;
+        showList(t('debugTitle'), 'Debug actions', items.map(function (item) { return { title: item.title, onClick: function () { closeOverlay(false); run(item); } }; }), { back: function () { closeOverlay(false); } });
+    }
+
     function showDebugPanel() {
         var old = document.querySelector('.plex-source-debug-overlay');
         if (old) old.remove();
         var overlay = document.createElement('div');
         overlay.className = 'plex-source-debug-overlay';
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,.82);color:#fff;font-family:monospace;padding:18px;overflow:auto;white-space:pre-wrap;font-size:12px;';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(0,0,0,.86);display:flex;align-items:stretch;justify-content:stretch;color:#fff;font-family:Arial,sans-serif;';
+        var box = document.createElement('div');
+        box.className = 'plex-source-box';
+        box.style.cssText = 'width:100%;max-width:none;max-height:none;margin:24px;box-sizing:border-box;overflow:auto;background:#171717;border-radius:18px;padding:22px;box-shadow:0 20px 80px rgba(0,0,0,.55);';
         function closeDebug() {
             document.removeEventListener('keydown', debugKeyHandler, true);
             overlay.remove();
-        }
-        function debugButtons() { return Array.prototype.slice.call(overlay.querySelectorAll('button')); }
-        function focusDebugButton(delta) {
-            var buttons = debugButtons();
-            if (!buttons.length) return;
-            var index = buttons.indexOf(document.activeElement);
-            if (index < 0) index = 0;
-            else index = (index + delta + buttons.length) % buttons.length;
-            try { buttons[index].focus(); } catch (e) {}
         }
         function debugKeyHandler(event) {
             var key = event.key || event.code || '';
             var code = event.keyCode || event.which;
             var handled = false;
-            if (key === 'Backspace' || key === 'Escape' || key === 'Esc' || key === 'BrowserBack' || code === 8 || code === 27 || code === 461 || code === 10009) {
-                closeDebug();
-                handled = true;
-            }
-            else if (key === 'ArrowLeft' || key === 'Left' || code === 37) { focusDebugButton(-1); handled = true; }
-            else if (key === 'ArrowRight' || key === 'Right' || code === 39) { focusDebugButton(1); handled = true; }
-            else if (key === 'ArrowDown' || key === 'Down' || code === 40) { overlay.scrollTop += Math.max(80, Math.round(window.innerHeight * 0.25)); handled = true; }
-            else if (key === 'ArrowUp' || key === 'Up' || code === 38) { overlay.scrollTop -= Math.max(80, Math.round(window.innerHeight * 0.25)); handled = true; }
-            else if (key === 'Enter' || key === 'OK' || code === 13) { if (document.activeElement && document.activeElement.click) document.activeElement.click(); handled = true; }
+            if (key === 'Backspace' || key === 'Escape' || key === 'Esc' || key === 'BrowserBack' || code === 8 || code === 27 || code === 461 || code === 10009) { closeDebug(); handled = true; }
+            else if (key === 'ArrowDown' || key === 'Down' || code === 40) { box.scrollTop += Math.max(80, Math.round(window.innerHeight * 0.25)); handled = true; }
+            else if (key === 'ArrowUp' || key === 'Up' || code === 38) { box.scrollTop -= Math.max(80, Math.round(window.innerHeight * 0.25)); handled = true; }
+            else if (key === 'Enter' || key === 'OK' || code === 13) { showDebugActions(closeDebug); handled = true; }
             if (handled) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -1440,53 +1517,22 @@
                 return false;
             }
         }
-        var actions = document.createElement('div');
-        actions.style.cssText = 'position:sticky;top:0;float:right;z-index:2;display:flex;gap:8px;align-items:center;';
-        var send = document.createElement('button');
-        send.textContent = t('sendBugReport');
-        send.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
-        send.onclick = askAndSendBugReport;
-        var copy = document.createElement('button');
-        copy.textContent = t('copyDebugLog');
-        copy.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
-        copy.onclick = function () {
-            var text = debugText();
-            try {
-                if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text);
-                else window.prompt(t('copyDebugLog'), text);
-                noty(t('debugLogCopied'));
-            } catch (e) { window.prompt(t('copyDebugLog'), text); }
-        };
-        var issue = document.createElement('button');
-        issue.textContent = t('openGithubIssue');
-        issue.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
-        issue.onclick = function () {
-            try { window.open('https://github.com/boiler4/lampa-plex-source/issues/new?template=bug_report.yml', '_blank'); }
-            catch (e) {}
-        };
-        var close = document.createElement('button');
-        close.textContent = 'Close';
-        close.style.cssText = 'padding:10px 12px;border-radius:8px;border:0;';
-        close.onclick = closeDebug;
-        actions.appendChild(send);
-        actions.appendChild(copy);
-        actions.appendChild(issue);
-        actions.appendChild(close);
-        overlay.appendChild(actions);
         var title = document.createElement('div');
+        title.className = 'plex-source-title';
         title.textContent = t('debugTitle');
-        title.style.cssText = 'font-size:18px;font-weight:bold;margin-bottom:12px;';
-        overlay.appendChild(title);
+        box.appendChild(title);
         var guide = document.createElement('div');
-        guide.textContent = t('bugReportGuide');
-        guide.style.cssText = 'font-family:Arial,sans-serif;font-size:13px;line-height:1.35;white-space:normal;opacity:.85;margin:0 0 14px;max-width:900px;';
-        overlay.appendChild(guide);
-        var body = document.createElement('div');
+        guide.className = 'plex-source-subtitle';
+        guide.textContent = t('bugReportGuide') + ' Press OK/Enter for actions.';
+        box.appendChild(guide);
+        var body = document.createElement('pre');
         body.textContent = debugText();
-        overlay.appendChild(body);
+        body.style.cssText = 'font-family:monospace;font-size:12px;line-height:1.45;white-space:pre-wrap;margin:0;';
+        box.appendChild(body);
+        overlay.appendChild(box);
+        overlay.addEventListener('click', function (event) { if (event.target === overlay) closeDebug(); });
         document.addEventListener('keydown', debugKeyHandler, true);
         document.body.appendChild(overlay);
-        try { close.focus(); } catch (e) {}
     }
 
     function noty(text) {
@@ -1558,6 +1604,7 @@
         }).map(function (device) {
             return {
                 name: device.getAttribute('name') || device.getAttribute('clientIdentifier') || 'Plex',
+                machineIdentifier: device.getAttribute('clientIdentifier') || device.getAttribute('machineIdentifier') || device.getAttribute('name') || '',
                 owned: device.getAttribute('owned') === '1' || device.getAttribute('owned') === 'true',
                 connections: Array.prototype.slice.call(device.querySelectorAll('Connection')).map(function (c) {
                     return {
@@ -1590,6 +1637,56 @@
             }
         }
         return null;
+    }
+
+    function bestConnectionForServer(server) {
+        if (!server || !server.connections || !server.connections.length) return null;
+        var choices = server.connections.map(function (connection) { return { server: server, connection: connection }; });
+        choices.sort(function (a, b) { return connectionScore(b) - connectionScore(a); });
+        return choices[0] || null;
+    }
+
+    function activePlexTargets() {
+        var s = settings();
+        if (s.serverMode !== 'all') {
+            if (!s.plexBase || !s.plexToken) return Promise.reject(new Error('missing-config'));
+            return Promise.resolve([{ base: s.plexBase, token: s.plexToken, serverName: s.plexServerName || 'Plex', relay: !!s.plexConnectionRelay, meta: s.plexConnectionMeta || s.plexBase }]);
+        }
+        if (!s.plexToken) return Promise.reject(new Error('missing-token'));
+        return listPlexServers(s.plexToken).then(function (servers) {
+            var targets = [];
+            var seen = {};
+            servers.forEach(function (server) {
+                var key = server.machineIdentifier || server.name || '';
+                if (!key) key = server.connections && server.connections[0] && server.connections[0].uri;
+                if (!key || seen[key]) return;
+                seen[key] = true;
+                var choices = (server.connections || []).map(function (connection) { return { server: server, connection: connection }; });
+                choices.sort(function (a, b) { return connectionScore(b) - connectionScore(a); });
+                choices.forEach(function (choice) {
+                    if (!choice.connection || !choice.connection.uri) return;
+                    targets.push({
+                        base: choice.connection.uri.replace(/\/$/, ''),
+                        token: s.plexToken,
+                        serverName: server.name || 'Plex',
+                        serverKey: key,
+                        relay: !!choice.connection.relay,
+                        meta: connectionMeta(choice.connection, false)
+                    });
+                });
+                try {
+                    if (server.name) {
+                        var tailName = String(server.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                        if (tailName) targets.push({ base: 'http://' + tailName + ':32400', token: s.plexToken, serverName: server.name || 'Plex', serverKey: key, relay: false, meta: 'Tailscale · ' + tailName });
+                    }
+                }
+                catch (e) {}
+            });
+            if (!targets.length && s.plexBase) targets.push({ base: s.plexBase, token: s.plexToken, serverName: s.plexServerName || 'Plex', relay: !!s.plexConnectionRelay, meta: s.plexConnectionMeta || s.plexBase });
+            if (!targets.length) throw new Error('no-server');
+            log('active Plex targets', targets.map(function (target) { return { name: target.serverName, base: target.base, relay: target.relay, meta: target.meta }; }));
+            return targets;
+        });
     }
 
     function listPlexServers(token) {
@@ -1828,6 +1925,16 @@
         };
     }
 
+    function targetSettings(target) {
+        var s = settings();
+        return {
+            plexBase: (target && target.base) || s.plexBase,
+            plexToken: (target && target.token) || s.plexToken,
+            plexConnectionRelay: target && typeof target.relay !== 'undefined' ? !!target.relay : !!s.plexConnectionRelay,
+            clientId: s.clientId || DEFAULTS.clientId
+        };
+    }
+
     function plexUrl(path, params) {
         var s = settings();
         var query = new URLSearchParams(params || {});
@@ -1838,10 +1945,21 @@
     function fetchXml(path, params) {
         var s = settings();
         if (!s.plexBase || !s.plexToken) return Promise.reject(new Error('missing-config'));
+        return fetchXmlFrom({ base: s.plexBase, token: s.plexToken }, path, params);
+    }
+
+    function fetchXmlFrom(target, path, params) {
+        var s = targetSettings(target);
+        if (!s.plexBase || !s.plexToken) return Promise.reject(new Error('missing-config'));
         var query = new URLSearchParams(params || {});
         var url = s.plexBase + path + (query.toString() ? '?' + query.toString() : '');
-        return fetch(url, { method: 'GET', mode: 'cors', headers: plexHeaders(s) })
-            .then(function (resp) {
+        var controller = window.AbortController ? new AbortController() : null;
+        var timer = controller ? setTimeout(function () { try { controller.abort(); } catch (e) {} }, 4500) : null;
+        var options = { method: 'GET', mode: 'cors', headers: plexHeaders(s) };
+        if (controller) options.signal = controller.signal;
+        var request = fetch(url, options);
+        if (request.finally) request = request.finally(function () { if (timer) clearTimeout(timer); });
+        return request.then(function (resp) {
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 return resp.text();
             })
@@ -1852,6 +1970,12 @@
 
     function plexCommand(path, params) {
         var s = settings();
+        if (!s.plexBase || !s.plexToken) return Promise.reject(new Error('missing-config'));
+        return plexCommandFrom({ base: s.plexBase, token: s.plexToken }, path, params);
+    }
+
+    function plexCommandFrom(target, path, params) {
+        var s = targetSettings(target);
         if (!s.plexBase || !s.plexToken) return Promise.reject(new Error('missing-config'));
         var query = new URLSearchParams(params || {});
         query.set('X-Plex-Token', s.plexToken);
@@ -1922,7 +2046,7 @@
         return score;
     }
 
-    function mapVideo(video, card) {
+    function mapVideo(video, card, target) {
         var media = video.querySelector('Media');
         var part = media ? media.querySelector('Part') : null;
         return {
@@ -1951,7 +2075,13 @@
             container: media ? attr(media, 'container') : '',
             partKey: part ? attr(part, 'key') : '',
             file: part ? attr(part, 'file') : '',
-            guids: guidList(video)
+            guids: guidList(video),
+            plexBase: target && target.base,
+            plexToken: target && target.token,
+            plexServerName: target && target.serverName,
+            plexServerKey: target && target.serverKey,
+            plexConnectionRelay: target && target.relay,
+            plexConnectionMeta: target && target.meta
         };
     }
 
@@ -1965,21 +2095,28 @@
         if (!titles.length) { log('findMatches: no titles', debugCard(card)); return Promise.resolve([]); }
         log('findMatches:start', { type: type, titles: titles, card: debugCard(card) });
 
-        return Promise.all(titles.map(function (title) {
-            return fetchXml('/library/all', { type: type, title: title, includeGuids: '1' })
-                .then(function (doc) {
-                    var selector = type === '2' ? 'Directory,Video' : 'Video';
-                    var mapped = nodes(doc, selector).map(function (v) { return mapVideo(v, card); });
-                    log('findMatches:query result', { title: title, type: type, selector: selector, count: mapped.length, mapped: mapped });
-                    return mapped;
-                })
-                .catch(function (err) { log('match query failed', title, err); return []; });
-        })).then(function (groups) {
+        return activePlexTargets().then(function (targets) {
+            var jobs = [];
+            targets.forEach(function (target) {
+                titles.forEach(function (title) {
+                    jobs.push(fetchXmlFrom(target, '/library/all', { type: type, title: title, includeGuids: '1' })
+                        .then(function (doc) {
+                            var selector = type === '2' ? 'Directory,Video' : 'Video';
+                            var mapped = nodes(doc, selector).map(function (v) { return mapVideo(v, card, target); });
+                            log('findMatches:query result', { server: target.serverName, base: target.base, title: title, type: type, selector: selector, count: mapped.length, mapped: mapped });
+                            return mapped;
+                        })
+                        .catch(function (err) { log('match query failed', { server: target.serverName, title: title, error: err && (err.stack || err.message || err) }); return []; }));
+                });
+            });
+            return Promise.all(jobs);
+        }).then(function (groups) {
             var byKey = {};
             groups.forEach(function (items) {
                 items.forEach(function (item) {
                     if (!item.ratingKey) return;
-                    if (!byKey[item.ratingKey] || item.score > byKey[item.ratingKey].score) byKey[item.ratingKey] = item;
+                    var key = (item.plexServerKey || item.plexBase || 'plex') + ':' + item.ratingKey;
+                    if (!byKey[key] || item.score > byKey[key].score) byKey[key] = item;
                 });
             });
             return Object.keys(byKey).map(function (key) { return byKey[key]; })
@@ -1989,8 +2126,13 @@
         });
     }
 
-    function fetchSeasons(showRatingKey) {
-        return fetchXml('/library/metadata/' + encodeURIComponent(showRatingKey) + '/children', {})
+    function itemTarget(item) {
+        return item ? { base: item.plexBase, token: item.plexToken, serverName: item.plexServerName, serverKey: item.plexServerKey, relay: item.plexConnectionRelay, meta: item.plexConnectionMeta } : null;
+    }
+
+    function fetchSeasons(show) {
+        var showRatingKey = show && show.ratingKey ? show.ratingKey : show;
+        return fetchXmlFrom(itemTarget(show), '/library/metadata/' + encodeURIComponent(showRatingKey) + '/children', {})
             .then(function (doc) {
                 return nodes(doc, 'Directory').map(function (season) {
                     return {
@@ -2000,16 +2142,23 @@
                         leafCount: attr(season, 'leafCount'),
                         viewedLeafCount: attr(season, 'viewedLeafCount'),
                         thumb: attr(season, 'thumb'),
-                        art: attr(season, 'art')
+                        art: attr(season, 'art'),
+                        plexBase: show && show.plexBase,
+                        plexToken: show && show.plexToken,
+                        plexServerName: show && show.plexServerName,
+                        plexServerKey: show && show.plexServerKey,
+                        plexConnectionRelay: show && show.plexConnectionRelay,
+                        plexConnectionMeta: show && show.plexConnectionMeta
                     };
                 }).filter(function (season) { return season.ratingKey; });
             });
     }
 
-    function fetchEpisodes(seasonRatingKey) {
-        return fetchXml('/library/metadata/' + encodeURIComponent(seasonRatingKey) + '/children', { includeGuids: '1' })
+    function fetchEpisodes(season) {
+        var seasonRatingKey = season && season.ratingKey ? season.ratingKey : season;
+        return fetchXmlFrom(itemTarget(season), '/library/metadata/' + encodeURIComponent(seasonRatingKey) + '/children', { includeGuids: '1' })
             .then(function (doc) {
-                return nodes(doc, 'Video').map(function (ep) { return mapVideo(ep, {}); })
+                return nodes(doc, 'Video').map(function (ep) { return mapVideo(ep, {}, itemTarget(season)); })
                     .filter(function (ep) { return ep.ratingKey && ep.partKey; })
                     .sort(function (a, b) { return (parseInt(a.index, 10) || 0) - (parseInt(b.index, 10) || 0); });
             });
@@ -2017,7 +2166,7 @@
 
     function streamUrl(item) {
         if (!item || !item.partKey) return '';
-        var s = settings();
+        var s = targetSettings(itemTarget(item));
         if (s.plexConnectionRelay && item.ratingKey) {
             var params = new URLSearchParams({
                 path: '/library/metadata/' + item.ratingKey,
@@ -2042,7 +2191,8 @@
 
     function thumbUrl(path) {
         if (!path) return '';
-        var s = settings();
+        var item = arguments.length > 1 ? arguments[1] : null;
+        var s = targetSettings(itemTarget(item));
         return s.plexBase + path + '?X-Plex-Token=' + encodeURIComponent(s.plexToken);
     }
 
@@ -2074,7 +2224,13 @@
         if (!Lampa.Timeline || !Lampa.Timeline.view || !Lampa.Utils || !Lampa.Utils.hash) return null;
         var mediaType = isShow(card) ? 'show' : 'movie';
         var id = item.ratingKey || card.id || titleFrom(card) || 'plex';
-        return Lampa.Timeline.view(Lampa.Utils.hash(['plex-source', mediaType, id].join(':')));
+        try {
+            return Lampa.Timeline.view(Lampa.Utils.hash(['plex-source', mediaType, id].join(':')));
+        }
+        catch (e) {
+            log('timeline lookup failed', e && (e.message || e));
+            return null;
+        }
     }
 
 
@@ -2112,12 +2268,12 @@
             quality: qualityMap(item),
             timeline: timeline,
             card: card,
-            thumbnail: thumbUrl(item.thumb) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
+            thumbnail: thumbUrl(item.thumb, item) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
             torrent_hash: 'plex-source:' + (item.ratingKey || item.partKey || 'stream'),
             plex: { ratingKey: item.ratingKey, sectionTitle: item.sectionTitle }
         };
 
-        log('play item', { relay: settings().plexConnectionRelay, base: settings().plexBase, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url) });
+        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url) });
         probePlaybackUrl(data.url);
         Lampa.Player.play(data);
         Lampa.Player.playlist([{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }]);
@@ -2354,37 +2510,43 @@
         return (window.Lampa && Lampa.Select) || window.Select || null;
     }
 
-    function imageIcon(path, fallback) {
-        var url = thumbUrl(path) || fallback || '';
+    function imageIcon(path, fallback, item) {
+        var url = thumbUrl(path, item) || fallback || '';
         return url ? '<img src="' + url.replace(/"/g, '&quot;') + '" />' : icon();
     }
 
     function showNativeSelect(title, items, onSelect, onBack, onLong) {
         var api = selectApi();
         if (!api || !api.show) return false;
-        api.show({
-            title: title,
-            items: items,
-            onSelect: onSelect,
-            onLong: onLong,
-            onBack: function () {
-                if (typeof onBack === 'function') onBack();
-                else restoreFocusAfterOverlay();
-            }
-        });
-        return true;
+        try {
+            api.show({
+                title: title,
+                items: items,
+                onSelect: onSelect,
+                onLong: onLong,
+                onBack: function () {
+                    if (typeof onBack === 'function') onBack();
+                    else restoreFocusAfterOverlay();
+                }
+            });
+            return true;
+        }
+        catch (e) {
+            log('native select failed', e && (e.stack || e.message || e));
+            return false;
+        }
     }
 
     function openShow(card, show, selectedSeasonKey) {
         noty(t('loadingSeasons'));
-        fetchSeasons(show.ratingKey).then(function (seasons) {
+        fetchSeasons(show).then(function (seasons) {
             var title = 'Plex — ' + (show.title || localTitleFrom(card));
             var nativeItems = seasons.map(function (season) {
                 return {
                     title: season.title,
                     subtitle: season.leafCount ? (season.leafCount + ' ' + t('episodesSuffix')) : '',
                     template: 'selectbox_icon',
-                    icon: imageIcon(season.thumb || show.thumb || card.poster_path, card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
+                    icon: imageIcon(season.thumb || show.thumb || card.poster_path, card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : '', season),
                     selected: selectedSeasonKey && String(season.ratingKey) === String(selectedSeasonKey),
                     season: season
                 };
@@ -2414,7 +2576,7 @@
 
     function markEpisode(card, show, season, ep, watched) {
         var endpoint = watched ? '/:/scrobble' : '/:/unscrobble';
-        return plexCommand(endpoint, {
+        return plexCommandFrom(itemTarget(ep) || itemTarget(season) || itemTarget(show), endpoint, {
             key: ep.ratingKey,
             identifier: 'com.plexapp.plugins.library'
         }).then(function () {
@@ -2460,7 +2622,7 @@
         info.className = 'plex-source-shots-info';
         var poster = document.createElement('img');
         poster.className = 'plex-source-shots-poster';
-        poster.src = thumbUrl(show.thumb || season.thumb) || (card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : '');
+        poster.src = thumbUrl(show.thumb || season.thumb, show) || (card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : '');
         info.appendChild(poster);
 
         var meta = document.createElement('div');
@@ -2492,7 +2654,7 @@
             item.setAttribute('data-action', 'true');
             item.setAttribute('tabindex', '-1');
             var img = document.createElement('img');
-            img.src = thumbUrl(ep.thumb || season.thumb || show.thumb) || (card.backdrop_path && Lampa.Api ? Lampa.Api.img(card.backdrop_path) : '');
+            img.src = thumbUrl(ep.thumb || season.thumb || show.thumb, ep) || (card.backdrop_path && Lampa.Api ? Lampa.Api.img(card.backdrop_path) : '');
             item.appendChild(img);
             var shade = document.createElement('div');
             shade.className = 'plex-source-card__shade';
@@ -2521,7 +2683,7 @@
 
     function openSeason(card, show, season) {
         noty(t('loadingEpisodes'));
-        fetchEpisodes(season.ratingKey).then(function (episodes) {
+        fetchEpisodes(season).then(function (episodes) {
             var title = 'Plex — ' + season.title;
             var nativeItems = episodes.map(function (ep) {
                 var bits = [];
@@ -2533,7 +2695,7 @@
                     title: 'E' + (ep.index || '?') + ' — ' + (ep.title || t('episodeFallback')),
                     subtitle: bits.join(' · '),
                     template: 'selectbox_icon',
-                    icon: imageIcon(ep.thumb || season.thumb || show.thumb || card.backdrop_path || card.poster_path, card.backdrop_path && Lampa.Api ? Lampa.Api.img(card.backdrop_path) : ''),
+                    icon: imageIcon(ep.thumb || season.thumb || show.thumb || card.backdrop_path || card.poster_path, card.backdrop_path && Lampa.Api ? Lampa.Api.img(card.backdrop_path) : '', ep),
                     episode: ep
                 };
             });
@@ -2585,9 +2747,11 @@
         if (!isShow(card) && match.videoCodec) subtitle.push(match.videoCodec.toUpperCase());
         if (!isShow(card) && match.bitrate) subtitle.push(formatBitrate(match.bitrate));
 
+        var sourceLabel = match.sectionTitle || 'Library';
+        if (settings().serverMode === 'all' && match.plexServerName) sourceLabel += ' — ' + match.plexServerName;
         var button = $([
             '<div class="full-start__button selector view--plex-source" data-subtitle="', subtitle.join(' · '), '">',
-            icon(), '<span>Plex — ', match.sectionTitle || 'Library', '</span>', '</div>'
+            icon(), '<span>Plex — ', sourceLabel, '</span>', '</div>'
         ].join(''));
 
         button.on('hover:enter', function () {
@@ -2648,9 +2812,9 @@
         var s = settings();
         var card = e.data.movie;
         log('card detected', debugCard(card));
-        log('settings state', { enabled: s.enabled, hasBase: !!s.plexBase, plexBase: s.plexBase, hasToken: !!s.plexToken, isShow: isShow(card), queryTitle: titleFrom(card), localTitle: localTitleFrom(card), year: yearFrom(card) });
+        log('settings state', { enabled: s.enabled, serverMode: s.serverMode, hasBase: !!s.plexBase, plexBase: s.plexBase, hasToken: !!s.plexToken, isShow: isShow(card), queryTitle: titleFrom(card), localTitle: localTitleFrom(card), year: yearFrom(card) });
         if (!s.enabled) { log('plugin disabled'); return; }
-        if (!s.plexBase || !s.plexToken) { log('skip: missing Plex config'); return; }
+        if (!s.plexToken || (s.serverMode !== 'all' && !s.plexBase)) { log('skip: missing Plex config'); return; }
         findMatches(card).then(function (matches) {
             log('matches result', { count: matches.length, matches: matches });
             attachButtons(e, matches);
@@ -2703,7 +2867,8 @@
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
         add({ type: 'static', name: component + '_info', field: { name: t('infoTitle'), description: t('infoText') } });
-        add({ type: 'button', name: component + '_current_server', field: { name: t('currentServer'), description: (settings().plexBase ? ((settings().plexServerName || 'Plex') + ' — ' + (settings().plexConnectionMeta || settings().plexBase)) : t('notSelected')) }, onChange: function () { var s = settings(); noty(t('currentServer') + ': ' + (s.plexBase ? ((s.plexServerName || 'Plex') + ' — ' + (s.plexConnectionMeta || s.plexBase)) : t('notSelected'))); } });
+        add({ type: 'select', name: component + '_server_mode', values: { single: 'Selected server', all: 'All servers' }, default: settings().serverMode, field: { name: 'Servers', description: 'Selected = one Plex server. All = search every available server; relay may be slower.' }, onChange: function (value) { save({ serverMode: value === 'all' ? 'all' : 'single' }); noty('Servers: ' + (value === 'all' ? 'All servers' : 'Selected server')); refreshSettingsSoon(); } });
+        add({ type: 'button', name: component + '_current_server', field: { name: t('currentServer'), description: (settings().serverMode === 'all' ? 'All servers · best connection per server' : (settings().plexBase ? ((settings().plexServerName || 'Plex') + ' — ' + (settings().plexConnectionMeta || settings().plexBase)) : t('notSelected'))) }, onChange: function () { var s = settings(); noty(t('currentServer') + ': ' + (s.serverMode === 'all' ? 'All servers' : (s.plexBase ? ((s.plexServerName || 'Plex') + ' — ' + (s.plexConnectionMeta || s.plexBase)) : t('notSelected')))); } });
         add({ type: 'button', name: component + '_plex_login', field: { name: t('plexLogin'), description: t('plexLoginDescription') }, onChange: function () { startPlexLogin(); } });
         add({ type: 'button', name: component + '_discover_server', field: { name: t('selectServer') }, onChange: function () { if (Date.now && Date.now() < SELECT_SERVER_COOLDOWN_UNTIL) return; noty(t('plexServerDiscovering')); choosePlexServer().then(function (best) { noty(t('serverSelected') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server select failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
         add({ type: 'button', name: component + '_test_connection', field: { name: t('testConnection') }, onChange: function () { fetchXml('/identity', {}).then(function (doc) { var m = doc.querySelector('MediaContainer'); log('connection test ok', { friendlyName: attr(m, 'friendlyName'), machineIdentifier: attr(m, 'machineIdentifier') }); noty(t('connectionOk') + ': ' + (attr(m, 'friendlyName') || attr(m, 'machineIdentifier') || 'Plex')); }).catch(function (err) { log('test failed', err && (err.stack || err.message || err)); noty(t('connectionFail')); }); } });
