@@ -39,6 +39,11 @@
                     "testConnection": "Проверить подключение",
                     "showConfig": "Состояние настроек",
                     "currentServer": "Текущий сервер",
+                    "serverMode": "Серверы",
+                    "serverModeSelected": "Выбранный сервер",
+                    "serverModeAll": "Все серверы",
+                    "serverModeDescription": "Выбранный = один сервер Plex. Все = искать на всех доступных серверах; relay может быть медленнее.",
+                    "currentServerAllDescription": "Все серверы · лучшая связь для каждого",
                     "notSelected": "не выбран",
                     "plexBase": "Сервер Plex",
                     "plexToken": "Plex Token",
@@ -101,6 +106,9 @@
                     "openGithubIssue": "Открыть GitHub issue",
                     "showBugReportQr": "QR для bug report",
                     "bugReportQrTitle": "Сканируйте QR, чтобы открыть GitHub issue",
+                    "bugReportQrHint": "Back/Esc закрывает. Приложите фото debug-экрана или вставьте Copy log.",
+                    "debugActions": "Действия debug",
+                    "debugPressOk": "Нажмите OK/Enter для действий.",
                     "bugReportFailed": "Не удалось отправить report",
                     "bugReportSent": "Report отправлен",
                     "bugReportPlaceholder": "Кратко опишите проблему",
@@ -145,6 +153,11 @@
                     "testConnection": "Check connection",
                     "showConfig": "Configuration status",
                     "currentServer": "Current server",
+                    "serverMode": "Servers",
+                    "serverModeSelected": "Selected server",
+                    "serverModeAll": "All servers",
+                    "serverModeDescription": "Selected = one Plex server. All = search every available server; relay may be slower.",
+                    "currentServerAllDescription": "All servers · best connection per server",
                     "notSelected": "not selected",
                     "plexBase": "Plex server",
                     "plexToken": "Plex token",
@@ -209,6 +222,9 @@
                     "openGithubIssue": "Open GitHub issue",
                     "showBugReportQr": "Bug report QR",
                     "bugReportQrTitle": "Scan QR to open GitHub issue",
+                    "bugReportQrHint": "Back/Esc closes. Attach a photo of the debug screen or paste Copy log.",
+                    "debugActions": "Debug actions",
+                    "debugPressOk": "Press OK/Enter for actions.",
                     "bugReportFailed": "Report failed",
                     "bugReportSent": "Report sent",
                     "bugReportPlaceholder": "Briefly describe the problem",
@@ -253,6 +269,11 @@
                     "testConnection": "Перевірити підключення",
                     "showConfig": "Стан налаштувань",
                     "currentServer": "Поточний сервер",
+                    "serverMode": "Сервери",
+                    "serverModeSelected": "Вибраний сервер",
+                    "serverModeAll": "Усі сервери",
+                    "serverModeDescription": "Вибраний = один сервер Plex. Усі = пошук на всіх доступних серверах; relay може бути повільнішим.",
+                    "currentServerAllDescription": "Усі сервери · найкраще з’єднання для кожного",
                     "notSelected": "не вибрано",
                     "plexBase": "Сервер Plex",
                     "plexToken": "Plex Token",
@@ -354,6 +375,11 @@
                     "testConnection": "Праверыць падключэнне",
                     "showConfig": "Стан налад",
                     "currentServer": "Бягучы сервер",
+                    "serverMode": "Серверы",
+                    "serverModeSelected": "Выбраны сервер",
+                    "serverModeAll": "Усе серверы",
+                    "serverModeDescription": "Выбраны = адзін сервер Plex. Усе = шукаць на ўсіх даступных серверах; relay можа быць павольней.",
+                    "currentServerAllDescription": "Усе серверы · лепшае злучэнне для кожнага",
                     "notSelected": "не выбраны",
                     "plexBase": "Сервер Plex",
                     "plexToken": "Plex Token",
@@ -455,6 +481,11 @@
                     "testConnection": "检查连接",
                     "showConfig": "配置状态",
                     "currentServer": "当前服务器",
+                    "serverMode": "服务器",
+                    "serverModeSelected": "已选服务器",
+                    "serverModeAll": "所有服务器",
+                    "serverModeDescription": "已选 = 一个 Plex 服务器。所有 = 搜索所有可用服务器；relay 可能较慢。",
+                    "currentServerAllDescription": "所有服务器 · 每个服务器使用最佳连接",
                     "notSelected": "未选择",
                     "plexBase": "Plex 服务器",
                     "plexToken": "Plex Token",
@@ -556,6 +587,11 @@
                     "testConnection": "Verificar ligação",
                     "showConfig": "Estado da configuração",
                     "currentServer": "Servidor atual",
+                    "serverMode": "Servidores",
+                    "serverModeSelected": "Servidor selecionado",
+                    "serverModeAll": "Todos os servidores",
+                    "serverModeDescription": "Selecionado = um servidor Plex. Todos = pesquisar em todos os servidores disponíveis; relay pode ser mais lento.",
+                    "currentServerAllDescription": "Todos os servidores · melhor conexão por servidor",
                     "notSelected": "não selecionado",
                     "plexBase": "Servidor Plex",
                     "plexToken": "Plex Token",
@@ -657,6 +693,11 @@
                     "testConnection": "Провери връзката",
                     "showConfig": "Състояние на настройките",
                     "currentServer": "Текущ сървър",
+                    "serverMode": "Сървъри",
+                    "serverModeSelected": "Избран сървър",
+                    "serverModeAll": "Всички сървъри",
+                    "serverModeDescription": "Избран = един Plex сървър. Всички = търсене във всички достъпни сървъри; relay може да е по-бавен.",
+                    "currentServerAllDescription": "Всички сървъри · най-добра връзка за всеки",
                     "notSelected": "не е избран",
                     "plexBase": "Plex сървър",
                     "plexToken": "Plex Token",
@@ -758,6 +799,11 @@
                     "testConnection": "בדיקת חיבור",
                     "showConfig": "מצב הגדרות",
                     "currentServer": "שרת נוכחי",
+                    "serverMode": "שרתים",
+                    "serverModeSelected": "שרת נבחר",
+                    "serverModeAll": "כל השרתים",
+                    "serverModeDescription": "נבחר = שרת Plex אחד. הכל = חיפוש בכל השרתים הזמינים; relay עלול להיות איטי יותר.",
+                    "currentServerAllDescription": "כל השרתים · החיבור הטוב ביותר לכל שרת",
                     "notSelected": "לא נבחר",
                     "plexBase": "שרת Plex",
                     "plexToken": "Plex Token",
@@ -859,6 +905,11 @@
                     "testConnection": "Zkontrolovat připojení",
                     "showConfig": "Stav nastavení",
                     "currentServer": "Aktuální server",
+                    "serverMode": "Servery",
+                    "serverModeSelected": "Vybraný server",
+                    "serverModeAll": "Všechny servery",
+                    "serverModeDescription": "Vybraný = jeden Plex server. Všechny = hledat na všech dostupných serverech; relay může být pomalejší.",
+                    "currentServerAllDescription": "Všechny servery · nejlepší připojení pro každý",
                     "notSelected": "nevybráno",
                     "plexBase": "Plex server",
                     "plexToken": "Plex Token",
@@ -960,6 +1011,11 @@
                     "testConnection": "Verifică conexiunea",
                     "showConfig": "Starea configurării",
                     "currentServer": "Server curent",
+                    "serverMode": "Servere",
+                    "serverModeSelected": "Server selectat",
+                    "serverModeAll": "Toate serverele",
+                    "serverModeDescription": "Selectat = un server Plex. Toate = caută pe toate serverele disponibile; relay poate fi mai lent.",
+                    "currentServerAllDescription": "Toate serverele · cea mai bună conexiune pentru fiecare",
                     "notSelected": "neselectat",
                     "plexBase": "Server Plex",
                     "plexToken": "Plex Token",
@@ -1061,6 +1117,11 @@
                     "testConnection": "Vérifier la connexion",
                     "showConfig": "État de la configuration",
                     "currentServer": "Serveur actuel",
+                    "serverMode": "Serveurs",
+                    "serverModeSelected": "Serveur sélectionné",
+                    "serverModeAll": "Tous les serveurs",
+                    "serverModeDescription": "Sélectionné = un serveur Plex. Tous = chercher sur tous les serveurs disponibles ; le relay peut être plus lent.",
+                    "currentServerAllDescription": "Tous les serveurs · meilleure connexion par serveur",
                     "notSelected": "non sélectionné",
                     "plexBase": "Serveur Plex",
                     "plexToken": "Plex Token",
@@ -1162,6 +1223,11 @@
                     "testConnection": "Verifica connessione",
                     "showConfig": "Stato configurazione",
                     "currentServer": "Server attuale",
+                    "serverMode": "Server",
+                    "serverModeSelected": "Server selezionato",
+                    "serverModeAll": "Tutti i server",
+                    "serverModeDescription": "Selezionato = un server Plex. Tutti = cerca su tutti i server disponibili; relay può essere più lento.",
+                    "currentServerAllDescription": "Tutti i server · miglior connessione per server",
                     "notSelected": "non selezionato",
                     "plexBase": "Server Plex",
                     "plexToken": "Token Plex",
@@ -1226,6 +1292,9 @@
                     "openGithubIssue": "Apri issue GitHub",
                     "showBugReportQr": "QR bug report",
                     "bugReportQrTitle": "Scansiona il QR per aprire una issue GitHub",
+                    "bugReportQrHint": "Back/Esc chiude. Allega una foto della schermata debug o incolla Copy log.",
+                    "debugActions": "Azioni debug",
+                    "debugPressOk": "Premi OK/Enter per le azioni.",
                     "bugReportFailed": "Invio report fallito",
                     "bugReportSent": "Report inviato",
                     "bugReportPlaceholder": "Descrivi brevemente il problema",
@@ -1433,7 +1502,7 @@
         url.textContent = bugReportIssueUrl();
         url.style.cssText = 'font-size:12px;opacity:.75;margin-top:14px;word-break:break-all;';
         var hint = document.createElement('div');
-        hint.textContent = 'Back/Esc closes. Attach a photo of the debug screen or paste Copy log.';
+        hint.textContent = t('bugReportQrHint');
         hint.className = 'plex-source-subtitle';
         hint.style.marginTop = '12px';
         function closeQr(event) {
@@ -1486,7 +1555,7 @@
             else if (item.action === 'close' && closeDebug) closeDebug();
         }
         if (showNativeSelect(t('debugTitle'), items, run, function () {})) return;
-        showList(t('debugTitle'), 'Debug actions', items.map(function (item) { return { title: item.title, onClick: function () { closeOverlay(false); run(item); } }; }), { back: function () { closeOverlay(false); } });
+        showList(t('debugTitle'), t('debugActions'), items.map(function (item) { return { title: item.title, onClick: function () { closeOverlay(false); run(item); } }; }), { back: function () { closeOverlay(false); } });
     }
 
     function showDebugPanel() {
@@ -1523,7 +1592,7 @@
         box.appendChild(title);
         var guide = document.createElement('div');
         guide.className = 'plex-source-subtitle';
-        guide.textContent = t('bugReportGuide') + ' Press OK/Enter for actions.';
+        guide.textContent = t('bugReportGuide') + ' ' + t('debugPressOk');
         box.appendChild(guide);
         var body = document.createElement('pre');
         body.textContent = debugText();
@@ -1674,13 +1743,6 @@
                         meta: connectionMeta(choice.connection, false)
                     });
                 });
-                try {
-                    if (server.name) {
-                        var tailName = String(server.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-                        if (tailName) targets.push({ base: 'http://' + tailName + ':32400', token: s.plexToken, serverName: server.name || 'Plex', serverKey: key, relay: false, meta: 'Tailscale · ' + tailName });
-                    }
-                }
-                catch (e) {}
             });
             if (!targets.length && s.plexBase) targets.push({ base: s.plexBase, token: s.plexToken, serverName: s.plexServerName || 'Plex', relay: !!s.plexConnectionRelay, meta: s.plexConnectionMeta || s.plexBase });
             if (!targets.length) throw new Error('no-server');
@@ -2867,8 +2929,8 @@
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
         add({ type: 'static', name: component + '_info', field: { name: t('infoTitle'), description: t('infoText') } });
-        add({ type: 'select', name: component + '_server_mode', values: { single: 'Selected server', all: 'All servers' }, default: settings().serverMode, field: { name: 'Servers', description: 'Selected = one Plex server. All = search every available server; relay may be slower.' }, onChange: function (value) { save({ serverMode: value === 'all' ? 'all' : 'single' }); noty('Servers: ' + (value === 'all' ? 'All servers' : 'Selected server')); refreshSettingsSoon(); } });
-        add({ type: 'button', name: component + '_current_server', field: { name: t('currentServer'), description: (settings().serverMode === 'all' ? 'All servers · best connection per server' : (settings().plexBase ? ((settings().plexServerName || 'Plex') + ' — ' + (settings().plexConnectionMeta || settings().plexBase)) : t('notSelected'))) }, onChange: function () { var s = settings(); noty(t('currentServer') + ': ' + (s.serverMode === 'all' ? 'All servers' : (s.plexBase ? ((s.plexServerName || 'Plex') + ' — ' + (s.plexConnectionMeta || s.plexBase)) : t('notSelected')))); } });
+        add({ type: 'select', name: component + '_server_mode', values: { single: t('serverModeSelected'), all: t('serverModeAll') }, default: settings().serverMode, field: { name: t('serverMode'), description: t('serverModeDescription') }, onChange: function (value) { save({ serverMode: value === 'all' ? 'all' : 'single' }); noty(t('serverMode') + ': ' + (value === 'all' ? t('serverModeAll') : t('serverModeSelected'))); refreshSettingsSoon(); } });
+        add({ type: 'button', name: component + '_current_server', field: { name: t('currentServer'), description: (settings().serverMode === 'all' ? t('currentServerAllDescription') : (settings().plexBase ? ((settings().plexServerName || 'Plex') + ' — ' + (settings().plexConnectionMeta || settings().plexBase)) : t('notSelected'))) }, onChange: function () { var s = settings(); noty(t('currentServer') + ': ' + (s.serverMode === 'all' ? t('serverModeAll') : (s.plexBase ? ((s.plexServerName || 'Plex') + ' — ' + (s.plexConnectionMeta || s.plexBase)) : t('notSelected')))); } });
         add({ type: 'button', name: component + '_plex_login', field: { name: t('plexLogin'), description: t('plexLoginDescription') }, onChange: function () { startPlexLogin(); } });
         add({ type: 'button', name: component + '_discover_server', field: { name: t('selectServer') }, onChange: function () { if (Date.now && Date.now() < SELECT_SERVER_COOLDOWN_UNTIL) return; noty(t('plexServerDiscovering')); choosePlexServer().then(function (best) { noty(t('serverSelected') + ': ' + best.connection.uri); }).catch(function (err) { log('manual server select failed', err && (err.stack || err.message || err)); noty(t('plexServerDiscoverFailed')); }); } });
         add({ type: 'button', name: component + '_test_connection', field: { name: t('testConnection') }, onChange: function () { fetchXml('/identity', {}).then(function (doc) { var m = doc.querySelector('MediaContainer'); log('connection test ok', { friendlyName: attr(m, 'friendlyName'), machineIdentifier: attr(m, 'machineIdentifier') }); noty(t('connectionOk') + ': ' + (attr(m, 'friendlyName') || attr(m, 'machineIdentifier') || 'Plex')); }).catch(function (err) { log('test failed', err && (err.stack || err.message || err)); noty(t('connectionFail')); }); } });
