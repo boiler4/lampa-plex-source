@@ -9,6 +9,7 @@
     var OVERLAY_BACK_ACTION = null;
     var OVERLAY_COLUMNS = 1;
     var SELECT_SERVER_COOLDOWN_UNTIL = 0;
+    var TARGET_CACHE = { key: '', expiresAt: 0, targets: [] };
 
     var DEFAULTS = {
         enabled: true,
@@ -1715,6 +1716,64 @@
         return choices[0] || null;
     }
 
+    function cacheKeyForToken(token) {
+        token = String(token || '');
+        return token ? (token.length + ':' + token.slice(-6)) : '';
+    }
+
+    function testPlexTarget(target) {
+        return fetchXmlFrom(target, '/identity', {}, 1800).then(function (doc) {
+            var m = doc.querySelector('MediaContainer');
+            return {
+                ok: true,
+                target: target,
+                machineIdentifier: attr(m, 'machineIdentifier'),
+                friendlyName: attr(m, 'friendlyName')
+            };
+        });
+    }
+
+    function pickWorkingTargets(candidates, cacheKey) {
+        var byServer = {};
+        candidates.forEach(function (target) {
+            var key = target.serverKey || target.serverName || target.base;
+            if (!byServer[key]) byServer[key] = [];
+            byServer[key].push(target);
+        });
+
+        return Promise.all(Object.keys(byServer).map(function (key) {
+            var list = byServer[key];
+            function fallbackTarget() {
+                for (var i = 0; i < list.length; i += 1) {
+                    if (list[i].relay) return list[i];
+                }
+                return list[0] || null;
+            }
+            function tryAt(index) {
+                if (index >= list.length) {
+                    var fallback = fallbackTarget();
+                    if (fallback) {
+                        fallback.validationFallback = true;
+                        log('target validation fallback', { server: fallback.serverName, base: fallback.base, relay: fallback.relay });
+                    }
+                    return Promise.resolve(fallback);
+                }
+                return testPlexTarget(list[index]).then(function (result) {
+                    log('target validated', { server: list[index].serverName, base: list[index].base, relay: list[index].relay, machineIdentifier: result.machineIdentifier });
+                    return list[index];
+                }).catch(function (err) {
+                    log('target validation failed', { server: list[index].serverName, base: list[index].base, relay: list[index].relay, error: err && (err.message || err) });
+                    return tryAt(index + 1);
+                });
+            }
+            return tryAt(0);
+        })).then(function (targets) {
+            targets = targets.filter(Boolean);
+            if (targets.length) TARGET_CACHE = { key: cacheKey, expiresAt: Date.now() + 10 * 60 * 1000, targets: targets };
+            return targets;
+        });
+    }
+
     function activePlexTargets() {
         var s = settings();
         if (s.serverMode !== 'all') {
@@ -1722,6 +1781,11 @@
             return Promise.resolve([{ base: s.plexBase, token: s.plexToken, serverName: s.plexServerName || 'Plex', relay: !!s.plexConnectionRelay, meta: s.plexConnectionMeta || s.plexBase }]);
         }
         if (!s.plexToken) return Promise.reject(new Error('missing-token'));
+        var cacheKey = cacheKeyForToken(s.plexToken);
+        if (TARGET_CACHE.key === cacheKey && TARGET_CACHE.expiresAt > Date.now() && TARGET_CACHE.targets.length) {
+            log('active Plex targets from cache', TARGET_CACHE.targets.map(function (target) { return { name: target.serverName, base: target.base, relay: target.relay, meta: target.meta }; }));
+            return Promise.resolve(TARGET_CACHE.targets);
+        }
         return listPlexServers(s.plexToken).then(function (servers) {
             var targets = [];
             var seen = {};
@@ -1746,8 +1810,12 @@
             });
             if (!targets.length && s.plexBase) targets.push({ base: s.plexBase, token: s.plexToken, serverName: s.plexServerName || 'Plex', relay: !!s.plexConnectionRelay, meta: s.plexConnectionMeta || s.plexBase });
             if (!targets.length) throw new Error('no-server');
-            log('active Plex targets', targets.map(function (target) { return { name: target.serverName, base: target.base, relay: target.relay, meta: target.meta }; }));
-            return targets;
+            log('active Plex target candidates', targets.map(function (target) { return { name: target.serverName, base: target.base, relay: target.relay, meta: target.meta }; }));
+            return pickWorkingTargets(targets, cacheKey).then(function (working) {
+                if (working.length) return working;
+                log('target validation found no working targets; falling back to candidates');
+                return targets;
+            });
         });
     }
 
@@ -2010,13 +2078,13 @@
         return fetchXmlFrom({ base: s.plexBase, token: s.plexToken }, path, params);
     }
 
-    function fetchXmlFrom(target, path, params) {
+    function fetchXmlFrom(target, path, params, timeoutMs) {
         var s = targetSettings(target);
         if (!s.plexBase || !s.plexToken) return Promise.reject(new Error('missing-config'));
         var query = new URLSearchParams(params || {});
         var url = s.plexBase + path + (query.toString() ? '?' + query.toString() : '');
         var controller = window.AbortController ? new AbortController() : null;
-        var timer = controller ? setTimeout(function () { try { controller.abort(); } catch (e) {} }, 4500) : null;
+        var timer = controller ? setTimeout(function () { try { controller.abort(); } catch (e) {} }, timeoutMs || 4500) : null;
         var options = { method: 'GET', mode: 'cors', headers: plexHeaders(s) };
         if (controller) options.signal = controller.signal;
         var request = fetch(url, options);
