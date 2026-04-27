@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.45-beta-dev',
+            version: '0.2.46-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.45-beta-dev',
+            'X-Plex-Version': '0.2.46-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.45-beta-dev',
+            'X-Plex-Version': '0.2.46-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2609,7 +2609,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.45-beta-dev'
+            'X-Plex-Version': '0.2.46-beta-dev'
         };
         var profiles = {
             ios: {
@@ -2720,6 +2720,23 @@
         return 0;
     }
 
+    function safeClosePlayerForHlsSwitch() {
+        var closed = false;
+        if (Lampa.Player && Lampa.Player.close) {
+            try {
+                Lampa.Player.close();
+                closed = true;
+            }
+            catch (e) {
+                log('Lampa.Player.close failed during HLS switch, falling back', e && (e.stack || e.message || e));
+            }
+        }
+        if (!closed && Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) {
+            try { Lampa.PlayerVideo.destroy(true); }
+            catch (err) { log('PlayerVideo.destroy failed during HLS switch', err && (err.stack || err.message || err)); }
+        }
+    }
+
     function switchPlexTranscodeStream(item, target, options) {
         options = Object.assign({}, options || {});
         var liveOffset = currentPlayerOffsetMs();
@@ -2731,8 +2748,7 @@
         try {
             HLS_SWITCH_REOPEN_UNTIL = Date.now() + 8000;
             if (context && context.card) {
-                if (Lampa.Player && Lampa.Player.close) Lampa.Player.close();
-                else if (Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) Lampa.PlayerVideo.destroy(true);
+                safeClosePlayerForHlsSwitch();
                 clearPlexProgressSync();
                 setTimeout(function () {
                     playItem(context.card, item, options);
@@ -2740,8 +2756,7 @@
                 return;
             }
             var url = transcodeUrl(item, target, options);
-            if (Lampa.Player && Lampa.Player.close) Lampa.Player.close();
-            else if (Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) Lampa.PlayerVideo.destroy(true);
+            safeClosePlayerForHlsSwitch();
             clearPlexProgressSync();
             setTimeout(function () {
                 if (Lampa.PlayerVideo && Lampa.PlayerVideo.url) Lampa.PlayerVideo.url(url, true);
@@ -3226,6 +3241,11 @@
             torrent_hash: 'plex-source:' + (item.ratingKey || item.partKey || 'stream'),
             plex: { ratingKey: item.ratingKey, sectionTitle: item.sectionTitle }
         };
+        if (settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item)) {
+            data.hls_type = 'hlsjs';
+            data.hls_manifest_timeout = 20000;
+            data.hls_retry_timeout = 45000;
+        }
 
         log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex, playbackMode: settings().playbackMode, transcodeProfile: settings().transcodeProfile, audioStreamID: options.audioStreamID || '', subtitleStreamID: options.subtitleStreamID || '' });
         ACTIVE_PLAY_CONTEXT = { card: card, item: item, options: Object.assign({}, options) };
@@ -3936,7 +3956,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.45-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.46-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
