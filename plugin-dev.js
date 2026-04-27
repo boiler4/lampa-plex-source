@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.49-beta-dev',
+            version: '0.2.50-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.49-beta-dev',
+            'X-Plex-Version': '0.2.50-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.49-beta-dev',
+            'X-Plex-Version': '0.2.50-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2326,34 +2326,62 @@
         });
     }
 
+    function resolvePlexPartForStreams(item, target, options) {
+        options = options || {};
+        var requestedAudio = options.audioStreamID ? String(options.audioStreamID) : '';
+        var requestedSubtitle = options.subtitleStreamID ? String(options.subtitleStreamID) : '';
+        if (!item || !item.ratingKey) return Promise.resolve({ partId: item && item.partId || '', xml: null });
+        return fetchXmlFrom(target || itemTarget(item), '/library/metadata/' + encodeURIComponent(item.ratingKey), { _: Date.now() }, 6500).then(function (xml) {
+            var parts = nodes(xml, 'Part');
+            var exact = parts.find(function (part) {
+                var streams = nodes(part, 'Stream');
+                return (requestedAudio && streams.some(function (stream) { return attr(stream, 'streamType') === '2' && attr(stream, 'id') === requestedAudio; })) ||
+                    (requestedSubtitle && streams.some(function (stream) { return attr(stream, 'streamType') === '3' && attr(stream, 'id') === requestedSubtitle; }));
+            });
+            var byItem = item.partId ? parts.find(function (part) { return attr(part, 'id') === String(item.partId); }) : null;
+            var part = exact || byItem || parts[0] || null;
+            return { partId: part ? attr(part, 'id') : (item.partId || ''), xml: xml };
+        }).catch(function (err) {
+            log('resolve Plex selected-stream part failed', err && (err.stack || err.message || err));
+            return { partId: item.partId || '', xml: null };
+        });
+    }
+
     function setPlexSelectedStreams(item, target, options) {
         options = options || {};
-        if (!item || !item.partId || (!options.audioStreamID && !options.subtitleStreamID)) return Promise.resolve(false);
+        if (!item || (!options.audioStreamID && !options.subtitleStreamID)) return Promise.resolve(false);
+        var effectiveTarget = target || itemTarget(item);
         var params = { allParts: '1' };
         if (options.audioStreamID) params.audioStreamID = String(options.audioStreamID);
         if (options.subtitleStreamID) params.subtitleStreamID = String(options.subtitleStreamID);
-        log('set Plex selected streams', { ratingKey: item.ratingKey, partId: item.partId, audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
-        var effectiveTarget = target || itemTarget(item);
-        return plexPutFrom(effectiveTarget, '/library/parts/' + encodeURIComponent(item.partId), params).then(function () {
-            log('set Plex selected streams done', { ratingKey: item.ratingKey, partId: item.partId, audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
-            return fetchXmlFrom(effectiveTarget, '/library/metadata/' + encodeURIComponent(item.ratingKey), { _: Date.now() }, 6500).then(function (xml) {
-                var part = nodes(xml, 'Part').find(function (p) { return attr(p, 'id') === String(item.partId); }) || nodes(xml, 'Part')[0];
-                var streams = part ? nodes(part, 'Stream') : [];
-                var selectedAudio = streams.find(function (stream) { return attr(stream, 'streamType') === '2' && attr(stream, 'selected') === '1'; });
-                var selectedSubtitle = streams.find(function (stream) { return attr(stream, 'streamType') === '3' && attr(stream, 'selected') === '1'; });
-                log('verify Plex selected streams', {
-                    ratingKey: item.ratingKey,
-                    partId: item.partId,
-                    requestedAudioStreamID: params.audioStreamID || '',
-                    selectedAudioStreamID: selectedAudio ? attr(selectedAudio, 'id') : '',
-                    selectedAudioLanguage: selectedAudio ? (attr(selectedAudio, 'language') || attr(selectedAudio, 'languageCode') || '') : '',
-                    requestedSubtitleStreamID: params.subtitleStreamID || '',
-                    selectedSubtitleStreamID: selectedSubtitle ? attr(selectedSubtitle, 'id') : ''
+        return resolvePlexPartForStreams(item, effectiveTarget, options).then(function (resolved) {
+            var partId = resolved && resolved.partId;
+            if (!partId) {
+                log('set Plex selected streams skipped: no part id', { ratingKey: item.ratingKey, itemPartId: item.partId || '', audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
+                return false;
+            }
+            log('set Plex selected streams', { ratingKey: item.ratingKey, partId: partId, itemPartId: item.partId || '', audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
+            return plexPutFrom(effectiveTarget, '/library/parts/' + encodeURIComponent(partId), params).then(function () {
+                log('set Plex selected streams done', { ratingKey: item.ratingKey, partId: partId, audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
+                return fetchXmlFrom(effectiveTarget, '/library/metadata/' + encodeURIComponent(item.ratingKey), { _: Date.now() }, 6500).then(function (xml) {
+                    var part = nodes(xml, 'Part').find(function (p) { return attr(p, 'id') === String(partId); }) || nodes(xml, 'Part')[0];
+                    var streams = part ? nodes(part, 'Stream') : [];
+                    var selectedAudio = streams.find(function (stream) { return attr(stream, 'streamType') === '2' && attr(stream, 'selected') === '1'; });
+                    var selectedSubtitle = streams.find(function (stream) { return attr(stream, 'streamType') === '3' && attr(stream, 'selected') === '1'; });
+                    log('verify Plex selected streams', {
+                        ratingKey: item.ratingKey,
+                        partId: partId,
+                        requestedAudioStreamID: params.audioStreamID || '',
+                        selectedAudioStreamID: selectedAudio ? attr(selectedAudio, 'id') : '',
+                        selectedAudioLanguage: selectedAudio ? (attr(selectedAudio, 'language') || attr(selectedAudio, 'languageCode') || '') : '',
+                        requestedSubtitleStreamID: params.subtitleStreamID || '',
+                        selectedSubtitleStreamID: selectedSubtitle ? attr(selectedSubtitle, 'id') : ''
+                    });
+                    return true;
+                }).catch(function (verifyErr) {
+                    log('verify Plex selected streams failed', verifyErr && (verifyErr.stack || verifyErr.message || verifyErr));
+                    return true;
                 });
-                return true;
-            }).catch(function (verifyErr) {
-                log('verify Plex selected streams failed', verifyErr && (verifyErr.stack || verifyErr.message || verifyErr));
-                return true;
             });
         });
     }
@@ -2653,7 +2681,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.49-beta-dev'
+            'X-Plex-Version': '0.2.50-beta-dev'
         };
         var profiles = {
             ios: {
@@ -4011,7 +4039,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.49-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.50-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4129,7 +4157,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.49-beta-dev' });
+        log('ready', { version: '0.2.50-beta-dev' });
     }
 
     (function wait() {
