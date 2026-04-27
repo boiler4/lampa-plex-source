@@ -1531,7 +1531,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.12-beta-dev',
+            version: '0.2.13-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1749,7 +1749,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.12-beta-dev',
+            'X-Plex-Version': '0.2.13-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2185,7 +2185,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.12-beta-dev',
+            'X-Plex-Version': '0.2.13-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2487,7 +2487,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.12-beta-dev',
+            'X-Plex-Version': '0.2.13-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2577,6 +2577,13 @@
         return s.plexBase + item.partKey + (item.partKey.indexOf('?') >= 0 ? '&' : '?') + 'download=0&X-Plex-Token=' + encodeURIComponent(s.plexToken);
     }
 
+    function setActiveTranscodeProfile(profile, label) {
+        if (!profile) return;
+        try { Lampa.Storage.set('plex_source_transcodeProfile', profile); }
+        catch (e) { try { localStorage.setItem('plex_source_transcodeProfile', profile); } catch (e2) {} }
+        log('Plex transcode profile selected', { profile: profile, label: label || '' });
+    }
+
     function plexQualityMap(item, target, options) {
         options = options || {};
         if (!item || !item.ratingKey) return null;
@@ -2591,7 +2598,14 @@
         ];
         var out = {};
         profiles.forEach(function (entry) {
-            out[entry[0]] = transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: entry[1] }));
+            var label = entry[0];
+            var profile = entry[1];
+            out[label] = {
+                url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: profile })),
+                label: profile,
+                profile: profile,
+                trigger: function () { setActiveTranscodeProfile(profile, label); }
+            };
         });
         return out;
     }
@@ -2834,6 +2848,7 @@
             : ((localTitleFrom(card) || item.title || 'Plex') + ' / Plex — ' + (item.sectionTitle || 'Library'));
 
         var target = targetSettings(itemTarget(item));
+        if (shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item)) setActiveTranscodeProfile((settings().transcodeProfile || DEFAULTS.transcodeProfile), 'startup');
         var data = {
             url: url,
             title: title.replace(/<[^>]*>?/gm, ''),
