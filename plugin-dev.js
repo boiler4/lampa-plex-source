@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.51-beta-dev',
+            version: '0.2.52-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.51-beta-dev',
+            'X-Plex-Version': '0.2.52-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.51-beta-dev',
+            'X-Plex-Version': '0.2.52-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2681,7 +2681,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.51-beta-dev'
+            'X-Plex-Version': '0.2.52-beta-dev'
         };
         var profiles = {
             ios: {
@@ -2794,20 +2794,40 @@
     }
 
     function safeClosePlayerForHlsSwitch() {
-        var closed = false;
-        if (Lampa.Player && Lampa.Player.close) {
+        var attempts = [];
+        function attempt(label, fn) {
             try {
-                Lampa.Player.close();
-                closed = true;
+                if (fn && fn()) attempts.push(label);
             }
-            catch (e) {
-                log('Lampa.Player.close failed during HLS switch, falling back', e && (e.stack || e.message || e));
+            catch (err) {
+                log(label + ' failed during HLS switch', err && (err.stack || err.message || err));
             }
         }
-        if (!closed && Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) {
-            try { Lampa.PlayerVideo.destroy(true); }
-            catch (err) { log('PlayerVideo.destroy failed during HLS switch', err && (err.stack || err.message || err)); }
-        }
+        attempt('HTML5 video reset', function () {
+            var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
+            if (!video) return false;
+            try { video.pause && video.pause(); } catch (e) {}
+            try { video.removeAttribute && video.removeAttribute('src'); } catch (e) {}
+            try { video.src = ''; } catch (e) {}
+            try { video.load && video.load(); } catch (e) {}
+            return true;
+        });
+        attempt('Lampa.Player.close', function () {
+            if (!(Lampa.Player && Lampa.Player.close)) return false;
+            Lampa.Player.close();
+            return true;
+        });
+        attempt('Lampa.PlayerVideo.destroy', function () {
+            if (!(Lampa.PlayerVideo && Lampa.PlayerVideo.destroy)) return false;
+            Lampa.PlayerVideo.destroy(true);
+            return true;
+        });
+        attempt('Lampa.PlayerVideo.clear', function () {
+            if (!(Lampa.PlayerVideo && Lampa.PlayerVideo.clear)) return false;
+            Lampa.PlayerVideo.clear();
+            return true;
+        });
+        log('HLS switch player reset attempted', { attempts: attempts });
     }
 
     function switchPlexTranscodeStream(item, target, options) {
@@ -2821,19 +2841,19 @@
         try {
             HLS_SWITCH_REOPEN_UNTIL = Date.now() + 8000;
             if (context && context.card) {
-                safeClosePlayerForHlsSwitch();
                 clearPlexProgressSync();
+                safeClosePlayerForHlsSwitch();
                 setTimeout(function () {
-                    playItem(context.card, item, options);
-                }, 650);
+                    playItem(context.card, item, Object.assign({}, options, { sessionNonce: String(Date.now()) + Math.floor(Math.random() * 10000) }));
+                }, 1400);
                 return;
             }
             var url = transcodeUrl(item, target, options);
-            safeClosePlayerForHlsSwitch();
             clearPlexProgressSync();
+            safeClosePlayerForHlsSwitch();
             setTimeout(function () {
-                if (Lampa.PlayerVideo && Lampa.PlayerVideo.url) Lampa.PlayerVideo.url(url, true);
-            }, 650);
+                if (Lampa.PlayerVideo && Lampa.PlayerVideo.url) Lampa.PlayerVideo.url(url + (url.indexOf('?') >= 0 ? '&' : '?') + '_lps_switch=' + Date.now(), true);
+            }, 1400);
         }
         catch (e) { log('switch Plex transcode stream failed', e && (e.stack || e.message || e)); }
     }
@@ -4044,7 +4064,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.51-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.52-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4162,7 +4182,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.51-beta-dev' });
+        log('ready', { version: '0.2.52-beta-dev' });
     }
 
     (function wait() {
