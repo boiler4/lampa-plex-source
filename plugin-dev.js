@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.18-beta-dev',
+            version: '0.2.19-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.18-beta-dev',
+            'X-Plex-Version': '0.2.19-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.18-beta-dev',
+            'X-Plex-Version': '0.2.19-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2464,7 +2464,7 @@
 
     function transcodeProfileParams(profile) {
         var profiles = {
-            audio_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
+            audio_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'mp3', protocol: 'hls' },
             browser_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
             p1080_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '1080', protocol: 'hls' },
             p1080_12: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '12000', videoBitrate: '12000', videoResolution: '1080', protocol: 'hls' },
@@ -2499,7 +2499,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.18-beta-dev',
+            'X-Plex-Version': '0.2.19-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2615,7 +2615,7 @@
         if (!item || !item.ratingKey) return null;
         if (!shouldExposePlexTranscodeControls(target) || shouldAvoidPlexTranscode(item)) return qualityMap(item);
         if (shouldAudioCompatTranscode(item)) {
-            return { 'Audio AAC': { url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: 'audio_compat' })), label: 'audio_compat', profile: 'audio_compat', trigger: function () { setActiveTranscodeProfile('audio_compat', 'Audio AAC'); } } };
+            return { 'Audio MP3': { url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: 'audio_compat' })), label: 'audio_compat', profile: 'audio_compat', trigger: function () { setActiveTranscodeProfile('audio_compat', 'Audio MP3'); } } };
         }
         var profiles = [
             ['Browser', 'browser_compat'],
