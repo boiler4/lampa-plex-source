@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.17-beta-dev',
+            version: '0.2.18-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.17-beta-dev',
+            'X-Plex-Version': '0.2.18-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.17-beta-dev',
+            'X-Plex-Version': '0.2.18-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2499,7 +2499,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.17-beta-dev',
+            'X-Plex-Version': '0.2.18-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2856,6 +2856,11 @@
 
     function playItem(card, item, options) {
         options = options || {};
+        if (isShow(card) && item && item.type === 'movie') {
+            log('blocked stale Plex movie item for show card', { card: debugCard(card), item: { ratingKey: item.ratingKey, title: item.title, type: item.type } });
+            noty(t('notPlayable'));
+            return;
+        }
         if (!options.sessionNonce) options.sessionNonce = String(Date.now()) + Math.floor(Math.random() * 10000);
         var url = streamUrl(item, options);
         if (!url) {
@@ -3441,11 +3446,9 @@
         try {
             if (!ACTIVE_SOURCE_SELECT || !Lampa.Select || !Lampa.Select.show || !document.body.classList.contains('selectbox--open')) return;
             var nextItems = sourceItemsFromButtons(root);
-            var hadPlex = ACTIVE_SOURCE_SELECT.items.some(function (item) { return item && item.btn && item.btn.hasClass && item.btn.hasClass('view--plex-source'); });
             var hasPlex = nextItems.some(function (item) { return item && item.btn && item.btn.hasClass && item.btn.hasClass('view--plex-source'); });
-            if (hadPlex === hasPlex && ACTIVE_SOURCE_SELECT.items.length === nextItems.length) return;
             ACTIVE_SOURCE_SELECT.items = nextItems;
-            log('refresh open source select', { items: nextItems.length, hasPlex: hasPlex });
+            log('refresh open source select', { items: nextItems.length, hasPlex: hasPlex, forced: true });
             Lampa.Select.show(ACTIVE_SOURCE_SELECT);
         }
         catch (e) { log('refresh open source select failed', e && (e.stack || e.message || e)); }
