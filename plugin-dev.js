@@ -27,8 +27,8 @@
         debug: false,
         episodeActionMode: 'play_long_actions',
         syncProgressToPlex: false,
-        playbackMode: 'direct',
-        transcodeProfile: 'browser_compat'
+        playbackMode: 'transcode',
+        transcodeProfile: 'ios_compat'
     };
 
     var I18N = {
@@ -1442,7 +1442,7 @@
             debug: boolValue('debug', DEFAULTS.debug),
             episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode),
             syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex),
-            playbackMode: 'direct',
+            playbackMode: 'transcode',
             transcodeProfile: DEFAULTS.transcodeProfile
         };
     }
@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.27-beta-dev',
+            version: '0.2.28-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.27-beta-dev',
+            'X-Plex-Version': '0.2.28-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.27-beta-dev',
+            'X-Plex-Version': '0.2.28-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2523,6 +2523,7 @@
 
     function transcodeProfileParams(profile) {
         var profiles = {
+            ios_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
             audio_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'mp3', protocol: 'hls' },
             browser_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
             p1080_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '1080', protocol: 'hls' },
@@ -2531,7 +2532,7 @@
             p720_4: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '4000', videoBitrate: '4000', videoResolution: '720', protocol: 'hls' },
             p480_2: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '2000', videoBitrate: '2000', videoResolution: '480', protocol: 'hls' }
         };
-        return profiles[profile] || profiles.browser_compat;
+        return profiles[profile] || profiles.ios_compat;
     }
 
     function transcodeUrl(item, target, options) {
@@ -2549,8 +2550,8 @@
         ];
         var params = new URLSearchParams(Object.assign({
             path: '/library/metadata/' + item.ratingKey,
-            mediaIndex: '0',
-            partIndex: '0',
+            mediaIndex: String(item.mediaIndex || '0'),
+            partIndex: String(item.partIndex || '0'),
             fastSeek: '1',
             copyts: '1',
             subtitles: 'auto',
@@ -2558,7 +2559,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.27-beta-dev',
+            'X-Plex-Version': '0.2.28-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2590,7 +2591,7 @@
     }
 
     function shouldExposePlexTranscodeControls(target) {
-        return false;
+        return !!target;
     }
 
     function plexAudioTracks(item, target, options) {
@@ -2671,33 +2672,23 @@
         options = options || {};
         if (!item || !item.ratingKey) return null;
         if (!shouldExposePlexTranscodeControls(target) || shouldAvoidPlexTranscode(item)) return qualityMap(item);
-        if (shouldAudioCompatTranscode(item)) {
-            return { 'Audio MP3': { url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: 'audio_compat' })), label: 'audio_compat', profile: 'audio_compat', trigger: function () { setActiveTranscodeProfile('audio_compat', 'Audio MP3'); } } };
-        }
-        var profiles = [
-            ['Browser', 'browser_compat'],
-            ['1080p 20 Mbps', 'p1080_20'],
-            ['1080p 12 Mbps', 'p1080_12'],
-            ['720p 8 Mbps', 'p720_8'],
-            ['720p 4 Mbps', 'p720_4'],
-            ['480p 2 Mbps', 'p480_2']
-        ];
-        var out = {};
-        profiles.forEach(function (entry) {
-            var label = entry[0];
-            var profile = entry[1];
-            out[label] = {
-                url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: profile })),
-                label: profile,
-                profile: profile,
-                trigger: function () { setActiveTranscodeProfile(profile, label); }
-            };
-        });
-        return out;
+        return {
+            'iOS HLS': {
+                url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: 'ios_compat' })),
+                label: 'ios_compat',
+                profile: 'ios_compat',
+                trigger: function () { setActiveTranscodeProfile('ios_compat', 'iOS HLS'); }
+            }
+        };
     }
+
 
     function streamUrl(item, options) {
         if (!item || !item.partKey) return '';
+        var target = targetSettings(itemTarget(item));
+        if (shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item)) {
+            return transcodeUrl(item, target, Object.assign({}, options || {}, { transcodeProfile: 'ios_compat' }));
+        }
         return directStreamUrl(item, itemTarget(item));
     }
 
