@@ -4,14 +4,18 @@
 
 It does **not** require a backend bridge. Users install one JavaScript URL in Lampa, configure their Plex server and token in Lampa settings, and play matching Plex items directly.
 
-> Status: `0.1.0-beta` — usable, but still recommended for private/testing use before a public release.
+> Status: `0.2.0-beta` — beta release for private/testing use.
 
 ## Features
 
 - Frontend-only plugin: no server, proxy, or bridge required.
-- In-app settings for Plex server URL, token, matching options, debug, and episode action behavior.
+- In-app settings for Plex login, server selection, matching options, debug, and episode action behavior.
 - Movie support: match current Lampa movie to Plex and play it.
 - TV support: match current Lampa show to Plex, then browse Plex seasons and episodes.
+- Plex PIN login from Lampa settings, with automatic server discovery.
+- Single-server or all-server matching mode, with server names shown on Plex buttons.
+- Dynamic source menu refresh: if Plex responds after the Lampa source picker is already open, the Plex button can appear without closing/reopening.
+- Relay/transcode playback attempt for Plex relay connections, improving compatibility when direct file playback is unavailable.
 - Native Lampa menus for seasons and episodes where available.
 - Plex watch state in episode lists:
   - watched
@@ -48,11 +52,11 @@ In Lampa:
 4. Paste the `plugin.js` URL.
 5. Restart/reload Lampa if needed.
 6. Open **Settings → Plex Source**.
-7. Configure:
-   - Plex server URL, e.g. `http://192.168.1.10:32400`
-   - Plex token
-   - optional matching/debug settings
-8. Use **Check connection**.
+7. Configure Plex access:
+   - recommended: use **Login with Plex**, then select a discovered server/connection
+   - fallback: manually enter Plex server URL, e.g. `http://192.168.1.10:32400`, and Plex token
+   - optional: choose **Selected server** or **All servers** matching mode, plus debug/matching settings
+8. Use **Check connection** when using manual server settings.
 
 ## How to get a Plex token
 
@@ -71,7 +75,7 @@ Keep this token private. The plugin stores it in Lampa local storage and sends i
 
 ## Usage
 
-Open a movie or TV show card in Lampa. If Plex Source finds matches in your Plex libraries, it adds a **Plex** source button.
+Open a movie or TV show card in Lampa. If Plex Source finds matches in your Plex libraries, it adds a **Plex** source button. If the Lampa source picker is already open while Plex is still responding, Plex Source tries to refresh that picker dynamically so the button appears without going back and opening it again.
 
 For TV shows:
 
