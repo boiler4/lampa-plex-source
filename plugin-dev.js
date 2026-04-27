@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.56-beta-dev',
+            version: '0.2.57-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.56-beta-dev',
+            'X-Plex-Version': '0.2.57-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.56-beta-dev',
+            'X-Plex-Version': '0.2.57-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2681,7 +2681,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.56-beta-dev'
+            'X-Plex-Version': '0.2.57-beta-dev'
         };
         var profiles = {
             ios: {
@@ -3297,7 +3297,10 @@
         var selectedAudio = baseOptions.audioStreamID || (audioChoices.find(function (s) { return s.selected === '1'; }) || audioChoices[0] || {}).id || '';
         var selectedSubtitle = baseOptions.subtitleStreamID || '';
         var rows = [];
-        rows.push({ title: '▶ ' + (t('play') || 'Play'), meta: (selectedAudio ? 'Audio: ' + streamLabel(audioChoices.find(function (s) { return s.id === selectedAudio; }), selectedAudio) : '') + (selectedSubtitle ? ' · Sub: ' + streamLabel(subChoices.find(function (s) { return s.id === selectedSubtitle; }), selectedSubtitle) : ''), action: 'play' });
+        var selectedMeta = (selectedAudio ? 'Audio: ' + streamLabel(audioChoices.find(function (s) { return s.id === selectedAudio; }), selectedAudio) : '') + (selectedSubtitle ? ' · Sub: ' + streamLabel(subChoices.find(function (s) { return s.id === selectedSubtitle; }), selectedSubtitle) : '');
+        var resumeOffset = parseInt(baseOptions.startOffsetMs || item.viewOffset || '0', 10) || 0;
+        if (resumeOffset > 10000) rows.push({ title: '▶ ' + t('resumeFrom') + ' ' + formatResumeTime(resumeOffset), meta: selectedMeta, action: 'play', startOffsetMs: resumeOffset });
+        rows.push({ title: '▶ ' + t('playFromStart'), meta: selectedMeta, action: 'play', startOffsetMs: 0 });
         audioChoices.forEach(function (stream, idx) {
             rows.push({ title: (stream.id === selectedAudio ? '✓ ' : '') + 'Audio: ' + streamLabel(stream, 'Audio ' + (idx + 1)), meta: stream.codec || '', action: 'audio', id: stream.id });
         });
@@ -3307,7 +3310,7 @@
         });
         function runPreplayRow(row) {
             if (row.action === 'play') {
-                playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true, audioStreamID: selectedAudio || undefined, subtitleStreamID: selectedSubtitle || undefined }));
+                playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true, startOffsetMs: row.startOffsetMs || 0, audioStreamID: selectedAudio || undefined, subtitleStreamID: selectedSubtitle || undefined }));
             }
             else {
                 var next = Object.assign({}, baseOptions, { hlsTracksChosen: false, streamsEnriched: true });
@@ -3416,8 +3419,8 @@
             url: url,
             title: title.replace(/<[^>]*>?/gm, ''),
             quality: plexQualityMap(item, target, options),
-            voiceovers: plexAudioTracks(item, target, options),
-            subtitles: plexSubtitleTracks(item, target, options),
+            voiceovers: (settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item)) ? null : plexAudioTracks(item, target, options),
+            subtitles: (settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item)) ? null : plexSubtitleTracks(item, target, options),
             timeline: timeline,
             card: card,
             thumbnail: thumbUrl(item.thumb, item) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
@@ -4139,7 +4142,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.56-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.57-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4257,7 +4260,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.56-beta-dev' });
+        log('ready', { version: '0.2.57-beta-dev' });
     }
 
     (function wait() {
