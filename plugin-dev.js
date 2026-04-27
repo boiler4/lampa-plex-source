@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.47-beta-dev',
+            version: '0.2.48-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.47-beta-dev',
+            'X-Plex-Version': '0.2.48-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.47-beta-dev',
+            'X-Plex-Version': '0.2.48-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2311,6 +2311,31 @@
         return fetch(url, { method: 'GET', mode: 'cors', headers: plexHeaders(s) }).then(function (resp) {
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             return resp.text();
+        });
+    }
+
+    function plexPutFrom(target, path, params) {
+        var s = targetSettings(target);
+        if (!s.plexBase || !s.plexToken) return Promise.reject(new Error('missing-config'));
+        var query = new URLSearchParams(params || {});
+        query.set('X-Plex-Token', s.plexToken);
+        var url = s.plexBase + path + (query.toString() ? '?' + query.toString() : '');
+        return fetch(url, { method: 'PUT', mode: 'cors', headers: plexHeaders(s) }).then(function (resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.text();
+        });
+    }
+
+    function setPlexSelectedStreams(item, target, options) {
+        options = options || {};
+        if (!item || !item.partId || (!options.audioStreamID && !options.subtitleStreamID)) return Promise.resolve(false);
+        var params = { allParts: '1' };
+        if (options.audioStreamID) params.audioStreamID = String(options.audioStreamID);
+        if (options.subtitleStreamID) params.subtitleStreamID = String(options.subtitleStreamID);
+        log('set Plex selected streams', { ratingKey: item.ratingKey, partId: item.partId, audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
+        return plexPutFrom(target || itemTarget(item), '/library/parts/' + encodeURIComponent(item.partId), params).then(function () {
+            log('set Plex selected streams done', { ratingKey: item.ratingKey, partId: item.partId, audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
+            return true;
         });
     }
 
@@ -2609,7 +2634,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.47-beta-dev'
+            'X-Plex-Version': '0.2.48-beta-dev'
         };
         var profiles = {
             ios: {
@@ -3202,6 +3227,17 @@
             return;
         }
         if (!options.sessionNonce) options.sessionNonce = String(Date.now()) + Math.floor(Math.random() * 10000);
+        var playTarget = targetSettings(itemTarget(item));
+        var usePlexHls = settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item);
+        if (usePlexHls && !options.streamsSelected && (options.audioStreamID || options.subtitleStreamID)) {
+            setPlexSelectedStreams(item, playTarget, options).then(function () {
+                playItem(card, item, Object.assign({}, options, { streamsSelected: true }));
+            }).catch(function (err) {
+                log('set Plex selected streams failed, continuing with HLS params', err && (err.stack || err.message || err));
+                playItem(card, item, Object.assign({}, options, { streamsSelected: true }));
+            });
+            return;
+        }
         var url = streamUrl(item, options);
         if (!url) {
             noty(t('notPlayable'));
@@ -3227,7 +3263,7 @@
             ? ((item.grandparentTitle || localTitleFrom(card) || t('showFallback')) + ' — S' + (item.parentIndex || '?') + 'E' + (item.index || '?') + ' — ' + (item.title || t('episodeFallback')))
             : ((localTitleFrom(card) || item.title || 'Plex') + ' / Plex — ' + (item.sectionTitle || 'Library'));
 
-        var target = targetSettings(itemTarget(item));
+        var target = playTarget;
         if (shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item)) setActiveTranscodeProfile((settings().transcodeProfile || DEFAULTS.transcodeProfile), 'startup');
         var data = {
             url: url,
@@ -3956,7 +3992,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.47-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.48-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
