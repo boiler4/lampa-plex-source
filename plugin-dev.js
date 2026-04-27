@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.24-beta-dev',
+            version: '0.2.25-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.24-beta-dev',
+            'X-Plex-Version': '0.2.25-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.24-beta-dev',
+            'X-Plex-Version': '0.2.25-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2534,7 +2534,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.24-beta-dev',
+            'X-Plex-Version': '0.2.25-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2868,6 +2868,50 @@
         return offset > 10000;
     }
 
+    function playlistTitleFor(card, item) {
+        return (item.grandparentTitle || localTitleFrom(card) || t('showFallback')) + ' — S' + (item.parentIndex || '?') + 'E' + (item.index || '?') + ' — ' + (item.title || t('episodeFallback'));
+    }
+
+    function playlistEntryFor(card, item) {
+        var url = streamUrl(item, {});
+        var timeline = timelineFor(card, item) || {};
+        return {
+            title: playlistTitleFor(card, item).replace(/<[^>]*>?/gm, ''),
+            url: url,
+            timeline: timeline,
+            thumbnail: thumbUrl(item.thumb, item) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
+            torrent_hash: 'plex-source:' + (item.ratingKey || item.partKey || 'stream') + ':' + (item.partId || item.mediaId || ''),
+            callback: function () {
+                startPlexProgressSync(item);
+            }
+        };
+    }
+
+    function seasonPlaylistFor(card, selectedItem) {
+        var groups = selectedItem && selectedItem.seasonEpisodeGroups;
+        if (!groups || !groups.length) return null;
+        var selectedKey = selectedItem && selectedItem.playlistGroupKey;
+        var selectedPart = selectedItem && (selectedItem.partId || selectedItem.partKey || selectedItem.mediaId);
+        var list = [];
+        groups.forEach(function (group) {
+            var ep = group.main;
+            if (group.key === selectedKey && group.versions && group.versions.length) {
+                ep = group.versions.find(function (v) {
+                    return (v.partId || v.partKey || v.mediaId) === selectedPart;
+                }) || ep;
+            }
+            if (ep && ep.partKey) list.push(playlistEntryFor(card, ep));
+        });
+        return list.length > 1 ? list : null;
+    }
+
+    function attachSeasonPlaylistMeta(ep, groups, group) {
+        var copy = Object.assign({}, ep);
+        copy.seasonEpisodeGroups = groups;
+        copy.playlistGroupKey = group && group.key || episodeVersionKey(ep);
+        return copy;
+    }
+
     function playItemWithChoice(card, item) {
         if (!hasResumeOffset(item)) return playItem(card, item, { startOffsetMs: 0 });
         var offset = parseInt(item.viewOffset || '0', 10) || 0;
@@ -2937,8 +2981,9 @@
         probePlaybackUrl(data.url);
         startPlexProgressSync(item);
         if (ACTIVE_PROGRESS_SYNC && startOffsetMs > 0) ACTIVE_PROGRESS_SYNC.lastTimeMs = startOffsetMs;
+        var playlist = seasonPlaylistFor(card, item) || [{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }];
         Lampa.Player.play(data);
-        Lampa.Player.playlist([{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }]);
+        Lampa.Player.playlist(playlist);
     }
 
     function ensureStyle() {
@@ -3260,7 +3305,7 @@
         (episodes || []).forEach(function (ep) {
             var key = episodeVersionKey(ep);
             if (!byKey[key]) {
-                byKey[key] = { main: ep, versions: [] };
+                byKey[key] = { key: key, main: ep, versions: [] };
                 groups.push(byKey[key]);
             }
             byKey[key].versions.push(ep);
@@ -3283,9 +3328,12 @@
     function showVersionSelect(card, show, season, item, onBack) {
         var versions = item && item.versions ? item.versions : [item && item.episode ? item.episode : item];
         if (!versions || versions.length <= 1) return playItemWithChoice(card, versions && versions[0]);
+        var groups = item && item.seasonEpisodeGroups;
+        var group = { key: item && item.playlistGroupKey };
         var title = 'E' + (versions[0].index || '?') + ' — ' + (versions[0].title || t('episodeFallback'));
         var rows = versions.map(function (ep) {
-            return { title: versionBits(ep).join(' · '), subtitle: ep.file ? String(ep.file).split(/[\\/]/).pop() : '', episode: ep };
+            var episode = attachSeasonPlaylistMeta(ep, groups, group);
+            return { title: versionBits(ep).join(' · '), subtitle: ep.file ? String(ep.file).split(/[\\/]/).pop() : '', episode: episode };
         });
         if (showNativeSelect(title, rows, function (row) {
             playItemWithChoice(card, row.episode);
@@ -3410,7 +3458,7 @@
                     subtitle: bits.join(' · '),
                     template: 'selectbox_icon',
                     icon: imageIcon(ep.thumb || season.thumb || show.thumb || card.backdrop_path || card.poster_path, card.backdrop_path && Lampa.Api ? Lampa.Api.img(card.backdrop_path) : '', ep),
-                    episode: Object.assign({}, ep, { versions: group.versions })
+                    episode: attachSeasonPlaylistMeta(Object.assign({}, ep, { versions: group.versions }), episodeGroups, group)
                 };
             });
             if (showNativeSelect(title, nativeItems, function (item) {
@@ -3432,7 +3480,7 @@
                 return {
                     title: 'E' + (ep.index || '?') + ' — ' + (ep.title || t('episodeFallback')),
                     meta: bits.join(' · '),
-                    onClick: function () { closeOverlay(true); handleEpisodeSelect(card, show, season, Object.assign({}, ep, { versions: group.versions })); }
+                    onClick: function () { closeOverlay(true); handleEpisodeSelect(card, show, season, attachSeasonPlaylistMeta(Object.assign({}, ep, { versions: group.versions }), episodeGroups, group)); }
                 };
             }), {
                 back: function () { openShow(card, show, season.ratingKey); }
