@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.26-beta-dev',
+            version: '0.2.27-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.26-beta-dev',
+            'X-Plex-Version': '0.2.27-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.26-beta-dev',
+            'X-Plex-Version': '0.2.27-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2558,7 +2558,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.26-beta-dev',
+            'X-Plex-Version': '0.2.27-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2858,6 +2858,39 @@
             log('Plex timeline sync disabled for external player');
             clearPlexProgressSync();
         });
+    }
+
+    var NATIVE_TRACK_DIAGNOSTICS_INSTALLED = false;
+    function installNativeTrackDiagnostics() {
+        if (NATIVE_TRACK_DIAGNOSTICS_INSTALLED || !Lampa.PlayerVideo || !Lampa.PlayerVideo.listener) return;
+        NATIVE_TRACK_DIAGNOSTICS_INSTALLED = true;
+        function countList(list) {
+            try { return list ? list.length || 0 : 0; } catch (e) { return 0; }
+        }
+        function readNativeTracks(reason) {
+            try {
+                var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
+                log('native player tracks probe', {
+                    reason: reason,
+                    audioTracks: video ? countList(video.audioTracks) : 0,
+                    textTracks: video ? countList(video.textTracks) : 0,
+                    hasAudioTracksApi: !!(video && video.audioTracks),
+                    hasTextTracksApi: !!(video && video.textTracks)
+                });
+            }
+            catch (e) { log('native player tracks probe failed', e && (e.stack || e.message || e)); }
+        }
+        Lampa.PlayerVideo.listener.follow('tracks', function (e) {
+            log('native player tracks event', { tracks: countList(e && e.tracks) });
+        });
+        Lampa.PlayerVideo.listener.follow('webos_tracks', function (e) {
+            log('webos player tracks event', { tracks: countList(e && e.tracks) });
+        });
+        Lampa.PlayerVideo.listener.follow('subs', function (e) {
+            log('native player subs event', { subs: countList(e && e.subs) });
+        });
+        Lampa.PlayerVideo.listener.follow('canplay', function () { readNativeTracks('canplay'); });
+        Lampa.PlayerVideo.listener.follow('loadeddata', function () { readNativeTracks('loadeddata'); });
     }
 
     function probePlaybackUrl(url) {
@@ -3825,6 +3858,7 @@
         addSettings();
         installSourceSelectWatcher();
         installPlexProgressSync();
+        installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
         log('ready');
