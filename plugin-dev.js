@@ -1442,8 +1442,8 @@
             debug: boolValue('debug', DEFAULTS.debug),
             episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode),
             syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex),
-            playbackMode: 'direct',
-            transcodeProfile: DEFAULTS.transcodeProfile
+            playbackMode: String(get('playbackMode', DEFAULTS.playbackMode) || DEFAULTS.playbackMode),
+            transcodeProfile: String(get('transcodeProfile', DEFAULTS.transcodeProfile) || DEFAULTS.transcodeProfile)
         };
     }
 
@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.33-beta-dev',
+            version: '0.2.34-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.33-beta-dev',
+            'X-Plex-Version': '0.2.34-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.33-beta-dev',
+            'X-Plex-Version': '0.2.34-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2532,7 +2532,7 @@
             p720_4: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '4000', videoBitrate: '4000', videoResolution: '720', protocol: 'hls' },
             p480_2: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '2000', videoBitrate: '2000', videoResolution: '480', protocol: 'hls' }
         };
-        return profiles[profile] || profiles.ios_compat;
+        return profiles[profile] || profiles.browser_compat;
     }
 
     function transcodeUrl(item, target, options) {
@@ -2559,7 +2559,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Web',
-            'X-Plex-Version': '0.2.33-beta-dev',
+            'X-Plex-Version': '0.2.34-beta-dev',
             'X-Plex-Platform': 'Chrome',
             'X-Plex-Platform-Version': '120',
             'X-Plex-Model': 'standalone',
@@ -2570,7 +2570,7 @@
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
         if (options.audioStreamID) params.set('audioStreamID', options.audioStreamID);
         if (options.subtitleStreamID) params.set('subtitleStreamID', options.subtitleStreamID);
-        log('Plex HLS web profile params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', maxVideoWidth: params.get('maxVideoWidth') || '', maxVideoHeight: params.get('maxVideoHeight') || '', platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), audioStreamID: params.get('audioStreamID') || '' });
+        log('Plex HLS transcode params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', maxVideoWidth: params.get('maxVideoWidth') || '', maxVideoHeight: params.get('maxVideoHeight') || '', platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), audioStreamID: params.get('audioStreamID') || '' });
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
     }
 
@@ -2597,7 +2597,7 @@
     }
 
     function shouldExposePlexTranscodeControls(target) {
-        return false;
+        return !!target && settings().playbackMode === 'transcode';
     }
 
     function plexAudioTracks(item, target, options) {
@@ -2678,12 +2678,13 @@
         options = options || {};
         if (!item || !item.ratingKey) return null;
         if (!shouldExposePlexTranscodeControls(target) || shouldAvoidPlexTranscode(item)) return qualityMap(item);
+        var profile = settings().transcodeProfile || DEFAULTS.transcodeProfile;
         return {
-            'iOS HLS': {
-                url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: 'ios_compat' })),
-                label: 'ios_compat',
-                profile: 'ios_compat',
-                trigger: function () { setActiveTranscodeProfile('ios_compat', 'iOS HLS'); }
+            'Plex HLS': {
+                url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: profile })),
+                label: profile,
+                profile: profile,
+                trigger: function () { setActiveTranscodeProfile(profile, 'Plex HLS'); }
             }
         };
     }
@@ -2691,6 +2692,10 @@
 
     function streamUrl(item, options) {
         if (!item || !item.partKey) return '';
+        var target = targetSettings(itemTarget(item));
+        if (settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item)) {
+            return transcodeUrl(item, target, Object.assign({}, options || {}, { transcodeProfile: settings().transcodeProfile || DEFAULTS.transcodeProfile }));
+        }
         return directStreamUrl(item, itemTarget(item));
     }
 
@@ -3775,6 +3780,8 @@
         add({ type: 'trigger', name: component + '_sync_progress_to_plex', default: settings().syncProgressToPlex, field: { name: t('syncProgressToPlex'), description: t('syncProgressToPlexDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.syncProgressToPlex); save({ syncProgressToPlex: next }); noty(t('syncProgressToPlex') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_options', field: { name: t('optionsTitle') } });
+        add({ type: 'select', name: component + '_playback_mode', values: { direct: t('playbackModeDirect'), transcode: t('playbackModeTranscode') }, default: settings().playbackMode, field: { name: t('playbackMode'), description: t('playbackModeDescription') }, onChange: function (value) { save({ playbackMode: value || DEFAULTS.playbackMode }); noty(t('playbackMode') + ': ' + (value || DEFAULTS.playbackMode)); } });
+        add({ type: 'select', name: component + '_transcode_profile', values: { browser_compat: t('transcodeBrowserCompat'), p1080_20: t('transcode1080p20'), p1080_12: t('transcode1080p12'), p720_8: t('transcode720p8'), p720_4: t('transcode720p4'), p480_2: t('transcode480p2') }, default: settings().transcodeProfile, field: { name: t('transcodeProfile'), description: t('transcodeProfileDescription') }, onChange: function (value) { save({ transcodeProfile: value || DEFAULTS.transcodeProfile }); noty(t('transcodeProfile') + ': ' + (value || DEFAULTS.transcodeProfile)); } });
 
         add({ type: 'title', name: component + '_title_advanced', field: { name: t('advancedTitle') } });
         add({ type: 'button', name: component + '_client_id', field: { name: t('clientId'), description: t('clientDescription') }, onChange: function () { promptText(t('clientId'), DEFAULTS.clientId, settings().clientId, function (v) { save({ clientId: v.trim() || DEFAULTS.clientId }); noty(t('savedClient')); }); } });
