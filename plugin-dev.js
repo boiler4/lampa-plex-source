@@ -1502,7 +1502,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.5-beta-dev',
+            version: '0.2.6-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1670,7 +1670,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.5-beta-dev',
+            'X-Plex-Version': '0.2.6-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2106,7 +2106,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.5-beta-dev',
+            'X-Plex-Version': '0.2.6-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2352,7 +2352,7 @@
 
     function transcodeProfileParams(profile) {
         var profiles = {
-            browser_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', protocol: 'hls' },
+            browser_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
             p1080_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '1080', protocol: 'hls' },
             p1080_12: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '12000', videoBitrate: '12000', videoResolution: '1080', protocol: 'hls' },
             p720_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '720', protocol: 'hls' },
@@ -2375,7 +2375,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.5-beta-dev',
+            'X-Plex-Version': '0.2.6-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(cfg.transcodeProfile)));
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
