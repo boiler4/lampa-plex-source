@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.53-beta-dev',
+            version: '0.2.54-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.53-beta-dev',
+            'X-Plex-Version': '0.2.54-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.53-beta-dev',
+            'X-Plex-Version': '0.2.54-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2681,7 +2681,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.53-beta-dev'
+            'X-Plex-Version': '0.2.54-beta-dev'
         };
         var profiles = {
             ios: {
@@ -3306,21 +3306,32 @@
         subChoices.forEach(function (stream, idx) {
             rows.push({ title: (stream.id === selectedSubtitle ? '✓ ' : '') + 'Subtitles: ' + streamLabel(stream, 'Subtitle ' + (idx + 1)), meta: stream.codec || '', action: 'subtitle', id: stream.id });
         });
-        showList('Plex HLS tracks', 'Choose before playback. In-player switching is unreliable in Lampa.', rows.map(function (row) {
+        function runPreplayRow(row) {
+            if (row.action === 'play') {
+                playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true, audioStreamID: selectedAudio || undefined, subtitleStreamID: selectedSubtitle || undefined }));
+            }
+            else {
+                var next = Object.assign({}, baseOptions, { hlsTracksChosen: false, streamsEnriched: true });
+                if (row.action === 'audio') next.audioStreamID = row.id;
+                if (row.action === 'subtitle') next.subtitleStreamID = row.id || undefined;
+                maybeChooseHlsTracksBeforePlay(card, item, next);
+            }
+        }
+        var nativeRows = rows.map(function (row) {
+            return { title: row.title, subtitle: row.meta || '', row: row };
+        });
+        if (showNativeSelect('Plex HLS tracks', nativeRows, function (choice) {
+            runPreplayRow(choice.row || choice);
+        }, function () {
+            restoreFocusAfterOverlay();
+        })) return;
+        showList('Plex HLS tracks', 'Choose before playback. Back/Esc closes this menu.', rows.map(function (row) {
             return {
                 title: row.title,
                 meta: row.meta || '',
                 onClick: function () {
                     closeOverlay(false);
-                    if (row.action === 'play') {
-                        playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true, audioStreamID: selectedAudio || undefined, subtitleStreamID: selectedSubtitle || undefined }));
-                    }
-                    else {
-                        var next = Object.assign({}, baseOptions, { hlsTracksChosen: false, streamsEnriched: true });
-                        if (row.action === 'audio') next.audioStreamID = row.id;
-                        if (row.action === 'subtitle') next.subtitleStreamID = row.id || undefined;
-                        maybeChooseHlsTracksBeforePlay(card, item, next);
-                    }
+                    runPreplayRow(row);
                 }
             };
         }), { back: function () { closeOverlay(false); restoreFocusAfterOverlay(); } });
@@ -4129,7 +4140,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.53-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.54-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4247,7 +4258,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.53-beta-dev' });
+        log('ready', { version: '0.2.54-beta-dev' });
     }
 
     (function wait() {
