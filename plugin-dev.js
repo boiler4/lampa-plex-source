@@ -160,7 +160,10 @@
                     "transcode720p8": "720p 8 Mbps",
                     "transcode720p4": "720p 4 Mbps",
                     "transcode480p2": "480p 2 Mbps",
-                    "transcodeProfileDescription": "Используется только в режиме Plex transcode/Auto relay."
+                    "transcodeProfileDescription": "Используется только в режиме Plex transcode/Auto relay.",
+                    "resumePlayback": "Продолжить просмотр",
+                    "resumeFrom": "Продолжить с",
+                    "playFromStart": "С начала"
             },
             "en": {
                     "component": "Plex Source",
@@ -292,7 +295,10 @@
                     "transcode720p8": "720p 8 Mbps",
                     "transcode720p4": "720p 4 Mbps",
                     "transcode480p2": "480p 2 Mbps",
-                    "transcodeProfileDescription": "Used only with Plex transcode / Auto relay playback."
+                    "transcodeProfileDescription": "Used only with Plex transcode / Auto relay playback.",
+                    "resumePlayback": "Resume playback",
+                    "resumeFrom": "Resume from",
+                    "playFromStart": "Play from start"
             },
             "uk": {
                     "component": "Plex Source",
@@ -1378,7 +1384,10 @@
                     "transcode720p8": "720p 8 Mbps",
                     "transcode720p4": "720p 4 Mbps",
                     "transcode480p2": "480p 2 Mbps",
-                    "transcodeProfileDescription": "Usato solo con transcodifica Plex / Auto relay."
+                    "transcodeProfileDescription": "Usato solo con transcodifica Plex / Auto relay.",
+                    "resumePlayback": "Continua riproduzione",
+                    "resumeFrom": "Continua da",
+                    "playFromStart": "Riproduci dall'inizio"
             }
     };
 
@@ -1502,7 +1511,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.6-beta-dev',
+            version: '0.2.7-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1670,7 +1679,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.6-beta-dev',
+            'X-Plex-Version': '0.2.7-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2106,7 +2115,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.6-beta-dev',
+            'X-Plex-Version': '0.2.7-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2362,8 +2371,9 @@
         return profiles[profile] || profiles.browser_compat;
     }
 
-    function transcodeUrl(item, target) {
+    function transcodeUrl(item, target, options) {
         if (!item || !item.ratingKey) return '';
+        options = options || {};
         var cfg = settings();
         var params = new URLSearchParams(Object.assign({
             path: '/library/metadata/' + item.ratingKey,
@@ -2375,19 +2385,21 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.6-beta-dev',
+            'X-Plex-Version': '0.2.7-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(cfg.transcodeProfile)));
+        if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
     }
 
-    function streamUrl(item) {
+    function streamUrl(item, options) {
         if (!item || !item.partKey) return '';
+        options = options || {};
         var s = targetSettings(itemTarget(item));
         var cfg = settings();
         var mode = cfg.playbackMode || DEFAULTS.playbackMode;
         var shouldTranscode = item.ratingKey && (mode === 'transcode' || (mode === 'auto' && s.plexConnectionRelay));
-        if (shouldTranscode) return transcodeUrl(item, s);
+        if (shouldTranscode) return transcodeUrl(item, s, options);
         return s.plexBase + item.partKey + (item.partKey.indexOf('?') >= 0 ? '&' : '?') + 'download=0&X-Plex-Token=' + encodeURIComponent(s.plexToken);
     }
 
@@ -2553,13 +2565,61 @@
         });
     }
 
-    function playItem(card, item) {
-        var url = streamUrl(item);
+    function formatResumeTime(ms) {
+        var total = Math.max(0, Math.floor((parseInt(ms || '0', 10) || 0) / 1000));
+        var h = Math.floor(total / 3600);
+        var m = Math.floor((total % 3600) / 60);
+        var sec = total % 60;
+        function pad(n) { return n < 10 ? '0' + n : String(n); }
+        return h ? (h + ':' + pad(m) + ':' + pad(sec)) : (m + ':' + pad(sec));
+    }
+
+    function hasResumeOffset(item) {
+        var offset = parseInt(item && item.viewOffset || '0', 10) || 0;
+        if (parseInt(item && item.viewCount || '0', 10) > 0) return false;
+        return offset > 10000;
+    }
+
+    function playItemWithChoice(card, item) {
+        if (!hasResumeOffset(item)) return playItem(card, item, { startOffsetMs: 0 });
+        var offset = parseInt(item.viewOffset || '0', 10) || 0;
+        var state = watchedInfo(item);
+        var title = item.title || item.grandparentTitle || localTitleFrom(card) || 'Plex';
+        if (showNativeSelect(t('resumePlayback'), [
+            { title: t('resumeFrom') + ' ' + formatResumeTime(offset), subtitle: state && state.label ? state.label : '', offset: offset },
+            { title: t('playFromStart'), offset: 0 }
+        ], function (choice) {
+            playItem(card, item, { startOffsetMs: choice.offset || 0 });
+        }, function () {
+            restoreFocusAfterOverlay();
+        })) return;
+        var useResume = window.confirm ? window.confirm(t('resumeFrom') + ' ' + formatResumeTime(offset) + '?') : true;
+        playItem(card, item, { startOffsetMs: useResume ? offset : 0 });
+    }
+
+    function playItem(card, item, options) {
+        options = options || {};
+        var url = streamUrl(item, options);
         if (!url) {
             noty(t('notPlayable'));
             return;
         }
-        var timeline = timelineFor(card, item);
+        var timeline = timelineFor(card, item) || {};
+        var startOffsetMs = parseInt(options.startOffsetMs || '0', 10) || 0;
+        var durationMs = parseInt(item.duration || '0', 10) || 0;
+        if (startOffsetMs > 0) {
+            timeline.time = startOffsetMs / 1000;
+            if (durationMs) timeline.percent = Math.max(1, Math.min(89, Math.round(startOffsetMs / durationMs * 100)));
+            timeline.duration = durationMs ? durationMs / 1000 : timeline.duration;
+            timeline.continued = false;
+            timeline.stop_recording = true;
+        }
+        else {
+            timeline.time = 0;
+            timeline.percent = 0;
+            timeline.continued = true;
+            timeline.stop_recording = true;
+        }
         var title = isShow(card)
             ? ((item.grandparentTitle || localTitleFrom(card) || t('showFallback')) + ' — S' + (item.parentIndex || '?') + 'E' + (item.index || '?') + ' — ' + (item.title || t('episodeFallback')))
             : ((localTitleFrom(card) || item.title || 'Plex') + ' / Plex — ' + (item.sectionTitle || 'Library'));
@@ -2578,6 +2638,7 @@
         log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex, playbackMode: settings().playbackMode, transcodeProfile: settings().transcodeProfile });
         probePlaybackUrl(data.url);
         startPlexProgressSync(item);
+        if (ACTIVE_PROGRESS_SYNC && startOffsetMs > 0) ACTIVE_PROGRESS_SYNC.lastTimeMs = startOffsetMs;
         Lampa.Player.play(data);
         Lampa.Player.playlist([{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }]);
     }
@@ -2897,7 +2958,7 @@
             { title: t('actionMarkWatched'), episode: ep, action: 'watched' },
             { title: t('actionMarkUnwatched'), episode: ep, action: 'unwatched' }
         ], function (item) {
-            if (item.action === 'play') playItem(card, ep);
+            if (item.action === 'play') playItemWithChoice(card, ep);
             else if (item.action === 'watched') markEpisode(card, show, season, ep, true);
             else if (item.action === 'unwatched') markEpisode(card, show, season, ep, false);
         }, function () {
@@ -2907,7 +2968,7 @@
 
     function handleEpisodeSelect(card, show, season, ep) {
         if (settings().episodeActionMode === 'actions') showEpisodeActions(card, show, season, ep);
-        else playItem(card, ep);
+        else playItemWithChoice(card, ep);
     }
 
     function showEpisodeGrid(card, show, season, episodes) {
@@ -2970,7 +3031,7 @@
             titleEl.className = 'plex-source-card__title';
             titleEl.textContent = ep.title || t('episodeFallback');
             item.appendChild(titleEl);
-            item.onclick = function () { closeOverlay(true); playItem(card, ep); };
+            item.onclick = function () { closeOverlay(true); playItemWithChoice(card, ep); };
             grid.appendChild(item);
         });
         wrap.appendChild(grid);
@@ -3019,7 +3080,7 @@
                 return {
                     title: 'E' + (ep.index || '?') + ' — ' + (ep.title || t('episodeFallback')),
                     meta: bits.join(' · '),
-                    onClick: function () { closeOverlay(true); playItem(card, ep); }
+                    onClick: function () { closeOverlay(true); playItemWithChoice(card, ep); }
                 };
             }), {
                 back: function () { openShow(card, show, season.ratingKey); }
@@ -3064,7 +3125,7 @@
         button.on('hover:enter', function () {
             LAST_TRIGGER_ELEMENT = button[0];
             if (isShow(card)) openShow(card, match);
-            else playItem(card, match);
+            else playItemWithChoice(card, match);
         });
         return button;
     }
