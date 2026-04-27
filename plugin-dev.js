@@ -1511,7 +1511,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.8-beta-dev',
+            version: '0.2.9-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1679,7 +1679,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.8-beta-dev',
+            'X-Plex-Version': '0.2.9-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2115,7 +2115,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.8-beta-dev',
+            'X-Plex-Version': '0.2.9-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2241,9 +2241,32 @@
         return score;
     }
 
+    function mapStreams(part, type) {
+        if (!part) return [];
+        return nodes(part, 'Stream').map(function (stream) {
+            return {
+                id: attr(stream, 'id'),
+                index: attr(stream, 'index'),
+                streamType: attr(stream, 'streamType'),
+                codec: attr(stream, 'codec'),
+                language: attr(stream, 'language'),
+                languageCode: attr(stream, 'languageCode'),
+                title: attr(stream, 'title'),
+                displayTitle: attr(stream, 'displayTitle'),
+                selected: attr(stream, 'selected'),
+                forced: attr(stream, 'forced'),
+                format: attr(stream, 'format'),
+                key: attr(stream, 'key'),
+                channels: attr(stream, 'channels')
+            };
+        }).filter(function (stream) { return !type || stream.streamType === String(type); });
+    }
+
     function mapVideo(video, card, target) {
         var media = video.querySelector('Media');
         var part = media ? media.querySelector('Part') : null;
+        var audioStreams = mapStreams(part, 2);
+        var subtitleStreams = mapStreams(part, 3);
         return {
             score: scoreVideo(video, card),
             ratingKey: attr(video, 'ratingKey'),
@@ -2270,6 +2293,10 @@
             container: media ? attr(media, 'container') : '',
             partKey: part ? attr(part, 'key') : '',
             file: part ? attr(part, 'file') : '',
+            partId: part ? attr(part, 'id') : '',
+            mediaId: media ? attr(media, 'id') : '',
+            audioStreams: audioStreams,
+            subtitleStreams: subtitleStreams,
             guids: guidList(video),
             plexBase: target && target.base,
             plexToken: target && target.token,
@@ -2386,20 +2413,82 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.8-beta-dev',
+            'X-Plex-Version': '0.2.9-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
+        if (options.audioStreamID) params.set('audioStreamID', options.audioStreamID);
+        if (options.subtitleStreamID) params.set('subtitleStreamID', options.subtitleStreamID);
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
+    }
+
+    function currentPlayerOffsetMs() {
+        try {
+            var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
+            if (video && video.currentTime) return Math.max(0, Math.round(video.currentTime * 1000));
+        }
+        catch (e) {}
+        return 0;
+    }
+
+    function switchPlexTranscodeStream(item, target, options) {
+        options = Object.assign({}, options || {});
+        var liveOffset = currentPlayerOffsetMs();
+        if (liveOffset > 0) options.startOffsetMs = liveOffset;
+        var url = transcodeUrl(item, target, options);
+        log('switch Plex transcode stream', { ratingKey: item && item.ratingKey, audioStreamID: options.audioStreamID, subtitleStreamID: options.subtitleStreamID, offset: options.startOffsetMs || 0 });
+        try {
+            if (Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) Lampa.PlayerVideo.destroy(true);
+            if (Lampa.PlayerVideo && Lampa.PlayerVideo.url) Lampa.PlayerVideo.url(url, true);
+        }
+        catch (e) { log('switch Plex transcode stream failed', e && (e.stack || e.message || e)); }
+    }
+
+    function shouldExposePlexTranscodeControls(target) {
+        var cfg = settings();
+        var mode = cfg.playbackMode || DEFAULTS.playbackMode;
+        return mode === 'transcode' || (mode === 'auto' && target && target.plexConnectionRelay);
+    }
+
+    function plexAudioTracks(item, target, options) {
+        if (!shouldExposePlexTranscodeControls(target) || !item || !item.audioStreams || !item.audioStreams.length) return null;
+        return item.audioStreams.filter(function (stream) { return stream.id; }).map(function (stream, idx) {
+            var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || ('Audio ' + (idx + 1));
+            return {
+                index: idx,
+                id: stream.id,
+                language: stream.language || stream.languageCode || '',
+                label: label,
+                selected: stream.selected === '1',
+                extra: { fourCC: stream.codec || '', channels: stream.channels || '' },
+                onSelect: function () {
+                    switchPlexTranscodeStream(item, target, Object.assign({}, options || {}, { audioStreamID: stream.id }));
+                }
+            };
+        });
+    }
+
+    function plexSubtitleTracks(item, target) {
+        if (!item || !item.subtitleStreams || !item.subtitleStreams.length) return null;
+        var out = item.subtitleStreams.filter(function (stream) {
+            return stream.key && /^(srt|ass|ssa|vtt)$/i.test(stream.codec || stream.format || '');
+        }).map(function (stream, idx) {
+            var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || ('Subtitle ' + (idx + 1));
+            return {
+                index: idx,
+                language: stream.language || stream.languageCode || '',
+                label: label + (stream.forced === '1' ? ' forced' : ''),
+                selected: stream.selected === '1',
+                url: target.plexBase + stream.key + (stream.key.indexOf('?') >= 0 ? '&' : '?') + 'X-Plex-Token=' + encodeURIComponent(target.plexToken)
+            };
+        });
+        return out.length ? out : null;
     }
 
     function plexQualityMap(item, target, options) {
         options = options || {};
         if (!item || !item.ratingKey) return null;
-        var cfg = settings();
-        var mode = cfg.playbackMode || DEFAULTS.playbackMode;
-        var shouldExpose = mode === 'transcode' || (mode === 'auto' && target && target.plexConnectionRelay);
-        if (!shouldExpose) return qualityMap(item);
+        if (!shouldExposePlexTranscodeControls(target)) return qualityMap(item);
         var profiles = [
             ['Browser', 'browser_compat'],
             ['1080p 20 Mbps', 'p1080_20'],
@@ -2652,6 +2741,8 @@
             url: url,
             title: title.replace(/<[^>]*>?/gm, ''),
             quality: plexQualityMap(item, target, options),
+            voiceovers: plexAudioTracks(item, target, options),
+            subtitles: plexSubtitleTracks(item, target),
             timeline: timeline,
             card: card,
             thumbnail: thumbUrl(item.thumb, item) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
