@@ -27,7 +27,7 @@
         debug: false,
         episodeActionMode: 'play_long_actions',
         syncProgressToPlex: false,
-        playbackMode: 'auto',
+        playbackMode: 'direct',
         transcodeProfile: 'browser_compat'
     };
 
@@ -1442,8 +1442,8 @@
             debug: boolValue('debug', DEFAULTS.debug),
             episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode),
             syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex),
-            playbackMode: String(get('playbackMode', DEFAULTS.playbackMode) || DEFAULTS.playbackMode),
-            transcodeProfile: String(get('transcodeProfile', DEFAULTS.transcodeProfile) || DEFAULTS.transcodeProfile)
+            playbackMode: 'direct',
+            transcodeProfile: DEFAULTS.transcodeProfile
         };
     }
 
@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.19-beta-dev',
+            version: '0.2.20-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.19-beta-dev',
+            'X-Plex-Version': '0.2.20-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.19-beta-dev',
+            'X-Plex-Version': '0.2.20-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2499,7 +2499,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.19-beta-dev',
+            'X-Plex-Version': '0.2.20-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2531,9 +2531,7 @@
     }
 
     function shouldExposePlexTranscodeControls(target) {
-        var cfg = settings();
-        var mode = cfg.playbackMode || DEFAULTS.playbackMode;
-        return mode === 'transcode' || (mode === 'auto' && target && target.plexConnectionRelay);
+        return false;
     }
 
     function plexAudioTracks(item, target, options) {
@@ -2641,23 +2639,7 @@
 
     function streamUrl(item, options) {
         if (!item || !item.partKey) return '';
-        options = options || {};
-        var s = targetSettings(itemTarget(item));
-        var cfg = settings();
-        var mode = cfg.playbackMode || DEFAULTS.playbackMode;
-        var shouldTranscode = item.ratingKey && (mode === 'transcode' || (mode === 'auto' && s.plexConnectionRelay));
-        if (shouldTranscode && shouldAvoidPlexTranscode(item)) {
-            var reason = transcodeAvoidReason(item);
-            log('Plex transcode avoided', { ratingKey: item.ratingKey, title: item.title || item.grandparentTitle, reason: reason, dolbyVisionProfile: dolbyVisionProfile(item), videoCodec: item.videoCodec });
-            noty(t('dolbyVisionDirectFallback'));
-            return directStreamUrl(item, s);
-        }
-        if (shouldTranscode && shouldAudioCompatTranscode(item)) {
-            log('Plex audio compatibility transcode', { ratingKey: item.ratingKey, title: item.title || item.grandparentTitle, videoCodec: item.videoCodec, audioCodec: item.audioCodec });
-            return transcodeUrl(item, s, Object.assign({}, options, { transcodeProfile: 'audio_compat' }));
-        }
-        if (shouldTranscode) return transcodeUrl(item, s, options);
-        return directStreamUrl(item, s);
+        return directStreamUrl(item, itemTarget(item));
     }
 
     function thumbUrl(path) {
@@ -3574,8 +3556,6 @@
         add({ type: 'trigger', name: component + '_sync_progress_to_plex', default: settings().syncProgressToPlex, field: { name: t('syncProgressToPlex'), description: t('syncProgressToPlexDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.syncProgressToPlex); save({ syncProgressToPlex: next }); noty(t('syncProgressToPlex') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_options', field: { name: t('optionsTitle') } });
-        add({ type: 'select', name: component + '_playback_mode', values: { auto: t('playbackModeAuto'), direct: t('playbackModeDirect'), transcode: t('playbackModeTranscode') }, default: settings().playbackMode, field: { name: t('playbackMode'), description: t('playbackModeDescription') }, onChange: function (value) { save({ playbackMode: value || DEFAULTS.playbackMode }); } });
-        add({ type: 'select', name: component + '_transcode_profile', values: { browser_compat: t('transcodeBrowserCompat'), p1080_20: t('transcode1080p20'), p1080_12: t('transcode1080p12'), p720_8: t('transcode720p8'), p720_4: t('transcode720p4'), p480_2: t('transcode480p2') }, default: settings().transcodeProfile, field: { name: t('transcodeProfile'), description: t('transcodeProfileDescription') }, onChange: function (value) { save({ transcodeProfile: value || DEFAULTS.transcodeProfile }); } });
 
         add({ type: 'title', name: component + '_title_advanced', field: { name: t('advancedTitle') } });
         add({ type: 'button', name: component + '_client_id', field: { name: t('clientId'), description: t('clientDescription') }, onChange: function () { promptText(t('clientId'), DEFAULTS.clientId, settings().clientId, function (v) { save({ clientId: v.trim() || DEFAULTS.clientId }); noty(t('savedClient')); }); } });
