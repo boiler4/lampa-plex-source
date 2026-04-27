@@ -247,6 +247,7 @@
                     "shareDebugLog": "Share log",
                     "openDebugLogText": "Open log as text",
                     "debugLogOpened": "Log opened in a new tab",
+                    "dolbyVisionDirectFallback": "Dolby Vision Profile 5: Plex transcode is disabled, using Direct Play.",
                     "openGithubIssue": "Open GitHub issue",
                     "showBugReportQr": "Bug report QR",
                     "bugReportQrTitle": "Scan QR to open GitHub issue",
@@ -1339,6 +1340,7 @@
                     "shareDebugLog": "Condividi log",
                     "openDebugLogText": "Apri log come testo",
                     "debugLogOpened": "Log aperto in una nuova scheda",
+                    "dolbyVisionDirectFallback": "Dolby Vision Profile 5: transcode Plex disattivato, uso Direct Play.",
                     "openGithubIssue": "Apri issue GitHub",
                     "showBugReportQr": "QR bug report",
                     "bugReportQrTitle": "Scansiona il QR per aprire una issue GitHub",
@@ -1529,7 +1531,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.11-beta-dev',
+            version: '0.2.12-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1747,7 +1749,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.11-beta-dev',
+            'X-Plex-Version': '0.2.12-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2183,7 +2185,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.11-beta-dev',
+            'X-Plex-Version': '0.2.12-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2325,7 +2327,9 @@
                 forced: attr(stream, 'forced'),
                 format: attr(stream, 'format'),
                 key: attr(stream, 'key'),
-                channels: attr(stream, 'channels')
+                channels: attr(stream, 'channels'),
+                DOVIPresent: attr(stream, 'DOVIPresent'),
+                DOVIProfile: attr(stream, 'DOVIProfile')
             };
         }).filter(function (stream) { return !type || stream.streamType === String(type); });
     }
@@ -2333,6 +2337,7 @@
     function mapVideo(video, card, target) {
         var media = video.querySelector('Media');
         var part = media ? media.querySelector('Part') : null;
+        var videoStreams = mapStreams(part, 1);
         var audioStreams = mapStreams(part, 2);
         var subtitleStreams = mapStreams(part, 3);
         return {
@@ -2363,6 +2368,7 @@
             file: part ? attr(part, 'file') : '',
             partId: part ? attr(part, 'id') : '',
             mediaId: media ? attr(media, 'id') : '',
+            videoStreams: videoStreams,
             audioStreams: audioStreams,
             subtitleStreams: subtitleStreams,
             guids: guidList(video),
@@ -2481,7 +2487,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.11-beta-dev',
+            'X-Plex-Version': '0.2.12-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2553,10 +2559,28 @@
         return out.length ? out : null;
     }
 
+    function dolbyVisionProfile(item) {
+        var streams = item && item.videoStreams ? item.videoStreams : [];
+        for (var i = 0; i < streams.length; i++) {
+            if (streams[i].DOVIPresent === '1' || streams[i].DOVIProfile) return String(streams[i].DOVIProfile || '1');
+        }
+        return '';
+    }
+
+    function shouldAvoidPlexTranscode(item) {
+        return dolbyVisionProfile(item) === '5';
+    }
+
+    function directStreamUrl(item, target) {
+        if (!item || !item.partKey) return '';
+        var s = targetSettings(target || itemTarget(item));
+        return s.plexBase + item.partKey + (item.partKey.indexOf('?') >= 0 ? '&' : '?') + 'download=0&X-Plex-Token=' + encodeURIComponent(s.plexToken);
+    }
+
     function plexQualityMap(item, target, options) {
         options = options || {};
         if (!item || !item.ratingKey) return null;
-        if (!shouldExposePlexTranscodeControls(target)) return qualityMap(item);
+        if (!shouldExposePlexTranscodeControls(target) || shouldAvoidPlexTranscode(item)) return qualityMap(item);
         var profiles = [
             ['Browser', 'browser_compat'],
             ['1080p 20 Mbps', 'p1080_20'],
@@ -2579,8 +2603,13 @@
         var cfg = settings();
         var mode = cfg.playbackMode || DEFAULTS.playbackMode;
         var shouldTranscode = item.ratingKey && (mode === 'transcode' || (mode === 'auto' && s.plexConnectionRelay));
+        if (shouldTranscode && shouldAvoidPlexTranscode(item)) {
+            log('Plex transcode avoided for Dolby Vision Profile 5', { ratingKey: item.ratingKey, title: item.title || item.grandparentTitle, dolbyVisionProfile: dolbyVisionProfile(item) });
+            noty(t('dolbyVisionDirectFallback'));
+            return directStreamUrl(item, s);
+        }
         if (shouldTranscode) return transcodeUrl(item, s, options);
-        return s.plexBase + item.partKey + (item.partKey.indexOf('?') >= 0 ? '&' : '?') + 'download=0&X-Plex-Token=' + encodeURIComponent(s.plexToken);
+        return directStreamUrl(item, s);
     }
 
     function thumbUrl(path) {
