@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.44-beta-dev',
+            version: '0.2.45-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.44-beta-dev',
+            'X-Plex-Version': '0.2.45-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.44-beta-dev',
+            'X-Plex-Version': '0.2.45-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2609,7 +2609,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.44-beta-dev'
+            'X-Plex-Version': '0.2.45-beta-dev'
         };
         var profiles = {
             ios: {
@@ -2885,9 +2885,11 @@
     function watchedInfo(item) {
         var duration = parseInt(item.duration || '0', 10) || 0;
         var offset = parseInt(item.viewOffset || '0', 10) || 0;
-        var percent = duration && offset ? Math.round(offset / duration * 100) : 0;
-        if (parseInt(item.viewCount || '0', 10) > 0) return { state: 'watched', label: '✓ ' + t('watchedLabel'), percent: 100 };
-        if (percent > 0) return { state: 'progress', label: '◐ ' + t('progressLabel') + ' ' + percent + '%', percent: percent };
+        var percent = duration && offset ? Math.max(1, Math.min(99, Math.round(offset / duration * 100))) : 0;
+        var viewCount = parseInt(item.viewCount || '0', 10) || 0;
+        var nearEnd = duration && offset >= Math.max(duration * 0.9, duration - 10 * 60 * 1000);
+        if (offset > 10000 && !nearEnd) return { state: 'progress', label: '◐ ' + t('progressLabel') + ' ' + percent + '%', percent: percent };
+        if (viewCount > 0 || nearEnd) return { state: 'watched', label: '✓ ' + t('watchedLabel'), percent: 100 };
         return { state: 'unwatched', label: '○ ' + t('unwatchedLabel'), percent: 0 };
     }
 
@@ -3934,7 +3936,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.44-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.45-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
