@@ -12,8 +12,6 @@
     var TARGET_CACHE = { key: '', expiresAt: 0, targets: [] };
     var ACTIVE_PROGRESS_SYNC = null;
     var PROGRESS_SYNC_INSTALLED = false;
-    var ACTIVE_PLAY_CONTEXT = null;
-    var HLS_SWITCH_REOPEN_UNTIL = 0;
 
     var DEFAULTS = {
         enabled: true,
@@ -158,7 +156,7 @@
                     "playbackModeDescription": "Авто = transcode для relay, прямой файл для direct. Transcode помогает встроенному плееру Lampa с кодеками.",
                     "transcodeProfile": "Профиль transcode",
                     "transcodeClientProfile": "Тип клиентского профиля",
-                    "transcodeOptionsTitle": "Transcode / экспериментально",
+                    "transcodeOptionsTitle": "Transcode",
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
                     "transcodeClientAppleTv": "Apple TV",
@@ -168,7 +166,7 @@
                     "transcodeClientChromecast": "Chromecast",
                     "transcodeClientRoku": "Roku",
                     "transcodeClientGeneric": "Generic TV",
-                    "transcodeClientProfileDescription": "Экспериментально: профиль влияет на кодеки, remux, 4K/HDR и дорожки. Проверяйте в логах Plex: using profile ...",
+                    "transcodeClientProfileDescription": "Профиль влияет на кодеки, remux, 4K/HDR и дорожки. Проверяйте в логах Plex: using profile ...",
                     "transcodeBrowserCompat": "Оригинальное качество / remux",
                     "transcode4k40": "4K 40 Mbps",
                     "transcode4k20": "4K 20 Mbps",
@@ -185,7 +183,12 @@
                     "transcodeProfileDescription": "Используется только в режиме Plex transcode/Auto relay.",
                     "resumePlayback": "Продолжить просмотр",
                     "resumeFrom": "Продолжить с",
-                    "playFromStart": "С начала"
+                    "playFromStart": "С начала",
+                    "hlsTracksTitle": "Дорожки Plex HLS",
+                    "hlsTracksHelp": "Выберите дорожки перед воспроизведением. Back/Esc закрывает меню.",
+                    "hlsAudioPrefix": "Аудио",
+                    "hlsSubtitlesPrefix": "Субтитры",
+                    "hlsSubtitlesOff": "Субтитры: выкл."
             },
             "en": {
                     "component": "Plex Source",
@@ -317,7 +320,7 @@
                     "playbackModeDescription": "Auto = transcode for relay, direct file for direct connections. Transcode helps Lampa integrated player with codecs.",
                     "transcodeProfile": "Transcode profile",
                     "transcodeClientProfile": "Client profile type",
-                    "transcodeOptionsTitle": "Transcode / experimental",
+                    "transcodeOptionsTitle": "Transcode",
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
                     "transcodeClientAppleTv": "Apple TV",
@@ -327,7 +330,7 @@
                     "transcodeClientChromecast": "Chromecast",
                     "transcodeClientRoku": "Roku",
                     "transcodeClientGeneric": "Generic TV",
-                    "transcodeClientProfileDescription": "Experimental: profile affects codecs, remux, 4K/HDR and tracks. Check Plex logs: using profile ...",
+                    "transcodeClientProfileDescription": "Profile affects codecs, remux, 4K/HDR and tracks. Check Plex logs: using profile ...",
                     "transcodeBrowserCompat": "Original quality / remux",
                     "transcode4k40": "4K 40 Mbps",
                     "transcode4k20": "4K 20 Mbps",
@@ -344,7 +347,12 @@
                     "transcodeProfileDescription": "Used only with Plex transcode / Auto relay playback.",
                     "resumePlayback": "Resume playback",
                     "resumeFrom": "Resume from",
-                    "playFromStart": "Play from start"
+                    "playFromStart": "Play from start",
+                    "hlsTracksTitle": "Plex HLS tracks",
+                    "hlsTracksHelp": "Choose tracks before playback. Back/Esc closes this menu.",
+                    "hlsAudioPrefix": "Audio",
+                    "hlsSubtitlesPrefix": "Subtitles",
+                    "hlsSubtitlesOff": "Subtitles: Off"
             },
             "uk": {
                     "component": "Plex Source",
@@ -1430,7 +1438,7 @@
                     "playbackModeDescription": "Auto = transcodifica per relay, file diretto per connessioni direct. La transcodifica aiuta il player integrato Lampa con i codec.",
                     "transcodeProfile": "Profilo transcodifica",
                     "transcodeClientProfile": "Tipo profilo client",
-                    "transcodeOptionsTitle": "Transcode / sperimentale",
+                    "transcodeOptionsTitle": "Transcode",
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
                     "transcodeClientAppleTv": "Apple TV",
@@ -1440,7 +1448,7 @@
                     "transcodeClientChromecast": "Chromecast",
                     "transcodeClientRoku": "Roku",
                     "transcodeClientGeneric": "Generic TV",
-                    "transcodeClientProfileDescription": "Sperimentale: il profilo influenza codec, remux, 4K/HDR e tracce. Controlla nei log Plex: using profile ...",
+                    "transcodeClientProfileDescription": "Il profilo influenza codec, remux, 4K/HDR e tracce. Controlla nei log Plex: using profile ...",
                     "transcodeBrowserCompat": "Qualità originale / remux",
                     "transcode4k40": "4K 40 Mbps",
                     "transcode4k20": "4K 20 Mbps",
@@ -1457,7 +1465,12 @@
                     "transcodeProfileDescription": "Usato solo con transcodifica Plex / Auto relay.",
                     "resumePlayback": "Continua riproduzione",
                     "resumeFrom": "Continua da",
-                    "playFromStart": "Riproduci dall'inizio"
+                    "playFromStart": "Riproduci dall'inizio",
+                    "hlsTracksTitle": "Tracce Plex HLS",
+                    "hlsTracksHelp": "Scegli le tracce prima della riproduzione. Back/Esc chiude il menu.",
+                    "hlsAudioPrefix": "Audio",
+                    "hlsSubtitlesPrefix": "Sottotitoli",
+                    "hlsSubtitlesOff": "Sottotitoli: Off"
             }
     };
 
@@ -1610,7 +1623,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.65-beta-dev',
+            version: '0.2.66-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1828,7 +1841,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.65-beta-dev',
+            'X-Plex-Version': '0.2.66-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2264,7 +2277,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.65-beta-dev',
+            'X-Plex-Version': '0.2.66-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2697,7 +2710,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.65-beta-dev'
+            'X-Plex-Version': '0.2.66-beta-dev'
         };
         var profiles = {
             ios: {
@@ -2799,124 +2812,20 @@
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
     }
 
-    function currentPlayerOffsetMs() {
-        try {
-            var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
-            if (video && video.currentTime) return Math.max(0, Math.round(video.currentTime * 1000));
-        }
-        catch (e) {}
-        return 0;
-    }
-
-    function safeClosePlayerForHlsSwitch() {
-        var attempts = [];
-        function attempt(label, fn) {
-            try {
-                if (fn && fn()) attempts.push(label);
-            }
-            catch (err) {
-                log(label + ' failed during HLS switch', err && (err.stack || err.message || err));
-            }
-        }
-        attempt('HTML5 video reset', function () {
-            var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
-            if (!video) return false;
-            try { video.pause && video.pause(); } catch (e) {}
-            try { video.removeAttribute && video.removeAttribute('src'); } catch (e) {}
-            try { video.src = ''; } catch (e) {}
-            try { video.load && video.load(); } catch (e) {}
-            return true;
-        });
-        attempt('Lampa.Player.close', function () {
-            if (!(Lampa.Player && Lampa.Player.close)) return false;
-            Lampa.Player.close();
-            return true;
-        });
-        attempt('Lampa.PlayerVideo.destroy', function () {
-            if (!(Lampa.PlayerVideo && Lampa.PlayerVideo.destroy)) return false;
-            Lampa.PlayerVideo.destroy(true);
-            return true;
-        });
-        attempt('Lampa.PlayerVideo.clear', function () {
-            if (!(Lampa.PlayerVideo && Lampa.PlayerVideo.clear)) return false;
-            Lampa.PlayerVideo.clear();
-            return true;
-        });
-        log('HLS switch player reset attempted', { attempts: attempts });
-    }
-
-    function switchPlexTranscodeStream(item, target, options) {
-        options = Object.assign({}, options || {});
-        var liveOffset = currentPlayerOffsetMs();
-        if (liveOffset > 0) options.startOffsetMs = liveOffset;
-        delete options.sessionNonce;
-        options.streamsEnriched = true;
-        var context = ACTIVE_PLAY_CONTEXT && ACTIVE_PLAY_CONTEXT.item === item ? ACTIVE_PLAY_CONTEXT : null;
-        log('switch Plex transcode stream', { ratingKey: item && item.ratingKey, audioStreamID: options.audioStreamID, subtitleStreamID: options.subtitleStreamID, offset: options.startOffsetMs || 0, restart: !!context });
-        try {
-            HLS_SWITCH_REOPEN_UNTIL = Date.now() + 8000;
-            if (context && context.card) {
-                clearPlexProgressSync();
-                safeClosePlayerForHlsSwitch();
-                setTimeout(function () {
-                    playItem(context.card, item, Object.assign({}, options, { sessionNonce: String(Date.now()) + Math.floor(Math.random() * 10000) }));
-                }, 1400);
-                return;
-            }
-            var url = transcodeUrl(item, target, options);
-            clearPlexProgressSync();
-            safeClosePlayerForHlsSwitch();
-            setTimeout(function () {
-                if (Lampa.PlayerVideo && Lampa.PlayerVideo.url) Lampa.PlayerVideo.url(url + (url.indexOf('?') >= 0 ? '&' : '?') + '_lps_switch=' + Date.now(), true);
-            }, 1400);
-        }
-        catch (e) { log('switch Plex transcode stream failed', e && (e.stack || e.message || e)); }
-    }
-
     function shouldExposePlexTranscodeControls(target) {
         return !!target && settings().playbackMode === 'transcode';
     }
 
     function plexAudioTracks(item, target, options) {
-        if (!shouldExposePlexTranscodeControls(target) || shouldAvoidPlexTranscode(item) || !item || !item.audioStreams || !item.audioStreams.length) return null;
-        return item.audioStreams.filter(function (stream) { return stream.id; }).map(function (stream, idx) {
-            var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || ('Audio ' + (idx + 1));
-            return {
-                index: idx,
-                id: stream.id,
-                language: stream.language || stream.languageCode || '',
-                label: label,
-                selected: stream.selected === '1',
-                extra: { fourCC: stream.codec || '', channels: stream.channels || '' },
-                onSelect: function () {
-                    switchPlexTranscodeStream(item, target, Object.assign({}, options || {}, { audioStreamID: stream.id }));
-                }
-            };
-        });
+        return null;
     }
 
     function plexSubtitleTracks(item, target, options) {
         if (!item || !item.subtitleStreams || !item.subtitleStreams.length) return null;
-        if (shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item)) {
-            var transcodeSubs = item.subtitleStreams.filter(function (stream) { return stream.id; }).map(function (stream, idx) {
-                var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || ('Subtitle ' + (idx + 1));
-                return {
-                    index: idx,
-                    id: stream.id,
-                    language: stream.language || stream.languageCode || '',
-                    label: label + (stream.forced === '1' ? ' forced' : ''),
-                    selected: stream.selected === '1',
-                    onSelect: function () {
-                        switchPlexTranscodeStream(item, target, Object.assign({}, options || {}, { subtitleStreamID: stream.id }));
-                    }
-                };
-            });
-            if (transcodeSubs.length) return transcodeSubs;
-        }
         var out = item.subtitleStreams.filter(function (stream) {
             return stream.key && /^(srt|ass|ssa|vtt)$/i.test(stream.codec || stream.format || '');
         }).map(function (stream, idx) {
-            var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || ('Subtitle ' + (idx + 1));
+            var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || (t('hlsSubtitlesPrefix') + ' ' + (idx + 1));
             return {
                 index: idx,
                 language: stream.language || stream.languageCode || '',
@@ -3130,10 +3039,6 @@
         });
         Lampa.PlayerVideo.listener.follow('ended', function () {
             if (!ACTIVE_PROGRESS_SYNC) return;
-            if (Date.now() < HLS_SWITCH_REOPEN_UNTIL) {
-                log('Plex timeline ended ignored during HLS switch reopen', { ratingKey: ACTIVE_PROGRESS_SYNC.item && ACTIVE_PROGRESS_SYNC.item.ratingKey, lastTimeMs: ACTIVE_PROGRESS_SYNC.lastTimeMs || 0 });
-                return;
-            }
             var sync = ACTIVE_PROGRESS_SYNC;
             var lastMs = Math.max(0, sync.maxRealTimeMs || sync.lastTimeMs || 0);
             var durationMs = sync.durationMs || 0;
@@ -3147,10 +3052,6 @@
         });
         Lampa.Player.listener && Lampa.Player.listener.follow && Lampa.Player.listener.follow('destroy', function () {
             if (!ACTIVE_PROGRESS_SYNC) return;
-            if (Date.now() < HLS_SWITCH_REOPEN_UNTIL) {
-                log('Plex timeline destroy ignored during HLS switch reopen', { ratingKey: ACTIVE_PROGRESS_SYNC.item && ACTIVE_PROGRESS_SYNC.item.ratingKey, lastTimeMs: ACTIVE_PROGRESS_SYNC.lastTimeMs || 0 });
-                return;
-            }
             sendPlexProgress('stopped', ACTIVE_PROGRESS_SYNC.lastTimeMs, true);
             clearPlexProgressSync();
         });
@@ -3352,16 +3253,16 @@
         var selectedAudio = baseOptions.audioStreamID || rememberedAudio || (audioChoices.find(function (s) { return s.selected === '1'; }) || audioChoices[0] || {}).id || '';
         var selectedSubtitle = typeof baseOptions.subtitleStreamID !== 'undefined' ? baseOptions.subtitleStreamID : rememberedSubtitle;
         var rows = [];
-        var selectedMeta = (selectedAudio ? 'Audio: ' + streamLabel(audioChoices.find(function (s) { return s.id === selectedAudio; }), selectedAudio) : '') + (selectedSubtitle ? ' · Sub: ' + streamLabel(subChoices.find(function (s) { return s.id === selectedSubtitle; }), selectedSubtitle) : '');
+        var selectedMeta = (selectedAudio ? t('hlsAudioPrefix') + ': ' + streamLabel(audioChoices.find(function (s) { return s.id === selectedAudio; }), selectedAudio) : '') + (selectedSubtitle ? ' · ' + t('hlsSubtitlesPrefix') + ': ' + streamLabel(subChoices.find(function (s) { return s.id === selectedSubtitle; }), selectedSubtitle) : '');
         var resumeOffset = parseInt(baseOptions.startOffsetMs || item.viewOffset || '0', 10) || 0;
         if (resumeOffset > 10000) rows.push({ title: '▶ ' + t('resumeFrom') + ' ' + formatResumeTime(resumeOffset), meta: selectedMeta, action: 'play', startOffsetMs: resumeOffset });
         rows.push({ title: '▶ ' + t('playFromStart'), meta: selectedMeta, action: 'play', startOffsetMs: 0 });
         audioChoices.forEach(function (stream, idx) {
-            rows.push({ title: (stream.id === selectedAudio ? '✓ ' : '') + 'Audio: ' + streamLabel(stream, 'Audio ' + (idx + 1)), meta: stream.codec || '', action: 'audio', id: stream.id });
+            rows.push({ title: (stream.id === selectedAudio ? '✓ ' : '') + t('hlsAudioPrefix') + ': ' + streamLabel(stream, t('hlsAudioPrefix') + ' ' + (idx + 1)), meta: stream.codec || '', action: 'audio', id: stream.id });
         });
-        rows.push({ title: (!selectedSubtitle ? '✓ ' : '') + 'Subtitles: Off', action: 'subtitle', id: '' });
+        rows.push({ title: (!selectedSubtitle ? '✓ ' : '') + t('hlsSubtitlesOff'), action: 'subtitle', id: '' });
         subChoices.forEach(function (stream, idx) {
-            rows.push({ title: (stream.id === selectedSubtitle ? '✓ ' : '') + 'Subtitles: ' + streamLabel(stream, 'Subtitle ' + (idx + 1)), meta: stream.codec || '', action: 'subtitle', id: stream.id });
+            rows.push({ title: (stream.id === selectedSubtitle ? '✓ ' : '') + t('hlsSubtitlesPrefix') + ': ' + streamLabel(stream, t('hlsSubtitlesPrefix') + ' ' + (idx + 1)), meta: stream.codec || '', action: 'subtitle', id: stream.id });
         });
         function runPreplayRow(row) {
             if (row.action === 'play') {
@@ -3379,12 +3280,12 @@
         var nativeRows = rows.map(function (row) {
             return { title: row.title, subtitle: row.meta || '', row: row };
         });
-        if (showNativeSelect('Plex HLS tracks', nativeRows, function (choice) {
+        if (showNativeSelect(t('hlsTracksTitle'), nativeRows, function (choice) {
             runPreplayRow(choice.row || choice);
         }, function () {
             restoreFocusAfterOverlay();
         })) return;
-        showList('Plex HLS tracks', 'Choose before playback. Back/Esc closes this menu.', rows.map(function (row) {
+        showList(t('hlsTracksTitle'), t('hlsTracksHelp'), rows.map(function (row) {
             return {
                 title: row.title,
                 meta: row.meta || '',
@@ -3493,7 +3394,6 @@
         }
 
         log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex, playbackMode: settings().playbackMode, transcodeProfile: settings().transcodeProfile, audioStreamID: options.audioStreamID || '', subtitleStreamID: options.subtitleStreamID || '' });
-        ACTIVE_PLAY_CONTEXT = { card: card, item: item, options: Object.assign({}, options) };
         probePlaybackUrl(data.url);
         startPlexProgressSync(item);
         if (ACTIVE_PROGRESS_SYNC && startOffsetMs > 0) ACTIVE_PROGRESS_SYNC.lastTimeMs = startOffsetMs;
@@ -4201,7 +4101,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.65-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.66-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4319,7 +4219,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.65-beta-dev' });
+        log('ready', { version: '0.2.66-beta-dev' });
     }
 
     (function wait() {
