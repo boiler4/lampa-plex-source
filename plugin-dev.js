@@ -28,7 +28,8 @@
         episodeActionMode: 'play_long_actions',
         syncProgressToPlex: false,
         playbackMode: 'direct',
-        transcodeProfile: 'browser_compat'
+        transcodeProfile: 'browser_compat',
+        transcodeClientProfile: 'web'
     };
 
     var I18N = {
@@ -154,6 +155,10 @@
                     "playbackModeTranscode": "Plex transcode HLS",
                     "playbackModeDescription": "Авто = transcode для relay, прямой файл для direct. Transcode помогает встроенному плееру Lampa с кодеками.",
                     "transcodeProfile": "Профиль transcode",
+                    "transcodeClientProfile": "Тип клиентского профиля",
+                    "transcodeClientWeb": "Web / Chrome",
+                    "transcodeClientIos": "iOS / Safari",
+                    "transcodeClientProfileDescription": "Экспериментально: Web обычно лучше для 4K/remux, iOS иногда совместимее, но может ограничивать качество.",
                     "transcodeBrowserCompat": "Совместимость браузера (оригинальное качество)",
                     "transcode1080p20": "1080p 20 Mbps",
                     "transcode1080p12": "1080p 12 Mbps",
@@ -294,6 +299,10 @@
                     "playbackModeTranscode": "Plex HLS transcode",
                     "playbackModeDescription": "Auto = transcode for relay, direct file for direct connections. Transcode helps Lampa integrated player with codecs.",
                     "transcodeProfile": "Transcode profile",
+                    "transcodeClientProfile": "Client profile type",
+                    "transcodeClientWeb": "Web / Chrome",
+                    "transcodeClientIos": "iOS / Safari",
+                    "transcodeClientProfileDescription": "Experimental: Web is usually better for 4K/remux; iOS may be more compatible but can limit quality.",
                     "transcodeBrowserCompat": "Browser compatible (same resolution)",
                     "transcode1080p20": "1080p 20 Mbps",
                     "transcode1080p12": "1080p 12 Mbps",
@@ -1388,6 +1397,10 @@
                     "playbackModeTranscode": "Transcodifica Plex HLS",
                     "playbackModeDescription": "Auto = transcodifica per relay, file diretto per connessioni direct. La transcodifica aiuta il player integrato Lampa con i codec.",
                     "transcodeProfile": "Profilo transcodifica",
+                    "transcodeClientProfile": "Tipo profilo client",
+                    "transcodeClientWeb": "Web / Chrome",
+                    "transcodeClientIos": "iOS / Safari",
+                    "transcodeClientProfileDescription": "Sperimentale: Web di solito è meglio per 4K/remux; iOS può essere più compatibile ma può limitare qualità.",
                     "transcodeBrowserCompat": "Compatibilità browser (stessa risoluzione)",
                     "transcode1080p20": "1080p 20 Mbps",
                     "transcode1080p12": "1080p 12 Mbps",
@@ -1443,7 +1456,8 @@
             episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode),
             syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex),
             playbackMode: String(get('playbackMode', DEFAULTS.playbackMode) || DEFAULTS.playbackMode),
-            transcodeProfile: String(get('transcodeProfile', DEFAULTS.transcodeProfile) || DEFAULTS.transcodeProfile)
+            transcodeProfile: String(get('transcodeProfile', DEFAULTS.transcodeProfile) || DEFAULTS.transcodeProfile),
+            transcodeClientProfile: String(get('transcodeClientProfile', DEFAULTS.transcodeClientProfile) || DEFAULTS.transcodeClientProfile)
         };
     }
 
@@ -1533,7 +1547,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.38-beta-dev',
+            version: '0.2.39-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1765,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.38-beta-dev',
+            'X-Plex-Version': '0.2.39-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2201,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.38-beta-dev',
+            'X-Plex-Version': '0.2.39-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2535,6 +2549,32 @@
         return profiles[profile] || profiles.browser_compat;
     }
 
+    function transcodeClientHeaders(target) {
+        var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
+        var base = {
+            'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
+            'X-Plex-Version': '0.2.39-beta-dev'
+        };
+        if (profile === 'ios') {
+            return Object.assign(base, {
+                'X-Plex-Product': 'Safari',
+                'X-Plex-Platform': 'iOS',
+                'X-Plex-Device': 'iPhone',
+                'X-Plex-Device-Name': 'Lampa iOS HLS',
+                'X-Plex-Client-Profile-Name': 'iOS'
+            });
+        }
+        return Object.assign(base, {
+            'X-Plex-Product': 'Plex Web',
+            'X-Plex-Platform': 'Chrome',
+            'X-Plex-Platform-Version': '120',
+            'X-Plex-Model': 'standalone',
+            'X-Plex-Device': 'Chrome',
+            'X-Plex-Device-Name': 'Lampa Plex Source',
+            'X-Plex-Device-Screen-Resolution': '3840x2160,3840x2160'
+        });
+    }
+
     function transcodeUrl(item, target, options) {
         if (!item || !item.ratingKey) return '';
         options = options || {};
@@ -2556,19 +2596,12 @@
             copyts: '1',
             subtitles: 'auto',
             session: sessionParts.join('-').replace(/[^a-zA-Z0-9_-]/g, ''),
-            'X-Plex-Token': target.plexToken,
-            'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Product': 'Safari',
-            'X-Plex-Version': '0.2.38-beta-dev',
-            'X-Plex-Platform': 'iOS',
-            'X-Plex-Device': 'iPhone',
-            'X-Plex-Device-Name': 'Lampa iOS HLS',
-            'X-Plex-Client-Profile-Name': 'iOS'
-        }, transcodeProfileParams(profile)));
+            'X-Plex-Token': target.plexToken
+        }, transcodeClientHeaders(target), transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
         if (options.audioStreamID) params.set('audioStreamID', options.audioStreamID);
         if (options.subtitleStreamID) params.set('subtitleStreamID', options.subtitleStreamID);
-        log('Plex HLS transcode params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', videoResolution: params.get('videoResolution') || '', platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), audioStreamID: params.get('audioStreamID') || '' });
+        log('Plex HLS transcode params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', videoResolution: params.get('videoResolution') || '', clientProfile: settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile, platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), audioStreamID: params.get('audioStreamID') || '' });
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
     }
 
@@ -3769,7 +3802,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.38-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.39-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -3797,6 +3830,7 @@
         add({ type: 'title', name: component + '_title_options', field: { name: t('optionsTitle') } });
         add({ type: 'select', name: component + '_playback_mode', values: { direct: t('playbackModeDirect'), transcode: t('playbackModeTranscode') }, default: settings().playbackMode, field: { name: t('playbackMode'), description: t('playbackModeDescription') }, onChange: function (value) { save({ playbackMode: value || DEFAULTS.playbackMode }); noty(t('playbackMode') + ': ' + (value || DEFAULTS.playbackMode)); } });
         add({ type: 'select', name: component + '_transcode_profile', values: { browser_compat: t('transcodeBrowserCompat'), p1080_20: t('transcode1080p20'), p1080_12: t('transcode1080p12'), p720_8: t('transcode720p8'), p720_4: t('transcode720p4'), p480_2: t('transcode480p2') }, default: settings().transcodeProfile, field: { name: t('transcodeProfile'), description: t('transcodeProfileDescription') }, onChange: function (value) { save({ transcodeProfile: value || DEFAULTS.transcodeProfile }); noty(t('transcodeProfile') + ': ' + (value || DEFAULTS.transcodeProfile)); } });
+        add({ type: 'select', name: component + '_transcode_client_profile', values: { web: t('transcodeClientWeb'), ios: t('transcodeClientIos') }, default: settings().transcodeClientProfile, field: { name: t('transcodeClientProfile'), description: t('transcodeClientProfileDescription') }, onChange: function (value) { save({ transcodeClientProfile: value || DEFAULTS.transcodeClientProfile }); noty(t('transcodeClientProfile') + ': ' + (value || DEFAULTS.transcodeClientProfile)); } });
 
         add({ type: 'title', name: component + '_title_advanced', field: { name: t('advancedTitle') } });
         add({ type: 'button', name: component + '_client_id', field: { name: t('clientId'), description: t('clientDescription') }, onChange: function () { promptText(t('clientId'), DEFAULTS.clientId, settings().clientId, function (v) { save({ clientId: v.trim() || DEFAULTS.clientId }); noty(t('savedClient')); }); } });
