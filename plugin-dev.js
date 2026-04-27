@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.21-beta-dev',
+            version: '0.2.22-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.21-beta-dev',
+            'X-Plex-Version': '0.2.22-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.21-beta-dev',
+            'X-Plex-Version': '0.2.22-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2534,7 +2534,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.21-beta-dev',
+            'X-Plex-Version': '0.2.22-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2805,8 +2805,12 @@
         Lampa.PlayerVideo.listener.follow('ended', function () {
             if (!ACTIVE_PROGRESS_SYNC) return;
             var sync = ACTIVE_PROGRESS_SYNC;
-            var endMs = sync.durationMs || sync.lastTimeMs;
-            maybeScrobblePlexProgress(endMs, sync.durationMs);
+            var lastMs = Math.max(0, sync.lastTimeMs || 0);
+            var durationMs = sync.durationMs || 0;
+            var nearEnd = durationMs && lastMs >= Math.max(durationMs * 0.85, durationMs - 5 * 60 * 1000);
+            var endMs = nearEnd ? durationMs : lastMs;
+            if (nearEnd) maybeScrobblePlexProgress(endMs, durationMs);
+            else log('Plex scrobble skipped: ended before real progress', { ratingKey: sync.item && sync.item.ratingKey, lastTimeMs: lastMs, durationMs: durationMs });
             sendPlexProgress('stopped', endMs, true);
             clearPlexProgressSync();
         });
