@@ -248,6 +248,7 @@
                     "openDebugLogText": "Open log as text",
                     "debugLogOpened": "Log opened in a new tab",
                     "dolbyVisionDirectFallback": "Dolby Vision Profile 5: Plex transcode is disabled, using Direct Play.",
+                    "unsafeTranscodeDirectFallback": "Plex HLS transcode is unstable for this item, using Direct Play.",
                     "openGithubIssue": "Open GitHub issue",
                     "showBugReportQr": "Bug report QR",
                     "bugReportQrTitle": "Scan QR to open GitHub issue",
@@ -1341,6 +1342,7 @@
                     "openDebugLogText": "Apri log come testo",
                     "debugLogOpened": "Log aperto in una nuova scheda",
                     "dolbyVisionDirectFallback": "Dolby Vision Profile 5: transcode Plex disattivato, uso Direct Play.",
+                    "unsafeTranscodeDirectFallback": "Transcode HLS Plex instabile per questo video, uso Direct Play.",
                     "openGithubIssue": "Apri issue GitHub",
                     "showBugReportQr": "QR bug report",
                     "bugReportQrTitle": "Scansiona il QR per aprire una issue GitHub",
@@ -1531,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.15-beta-dev',
+            version: '0.2.16-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1749,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.15-beta-dev',
+            'X-Plex-Version': '0.2.16-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2185,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.15-beta-dev',
+            'X-Plex-Version': '0.2.16-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2496,7 +2498,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.15-beta-dev',
+            'X-Plex-Version': '0.2.16-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2534,7 +2536,7 @@
     }
 
     function plexAudioTracks(item, target, options) {
-        if (!shouldExposePlexTranscodeControls(target) || !item || !item.audioStreams || !item.audioStreams.length) return null;
+        if (!shouldExposePlexTranscodeControls(target) || shouldAvoidPlexTranscode(item) || !item || !item.audioStreams || !item.audioStreams.length) return null;
         return item.audioStreams.filter(function (stream) { return stream.id; }).map(function (stream, idx) {
             var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || ('Audio ' + (idx + 1));
             return {
@@ -2576,8 +2578,19 @@
         return '';
     }
 
+    function isKnownDirectFriendly(item) {
+        var codec = String(item && item.videoCodec || '').toLowerCase();
+        return codec === 'h264' || codec === 'avc1';
+    }
+
     function shouldAvoidPlexTranscode(item) {
-        return dolbyVisionProfile(item) === '5';
+        return dolbyVisionProfile(item) === '5' || isKnownDirectFriendly(item);
+    }
+
+    function transcodeAvoidReason(item) {
+        if (dolbyVisionProfile(item) === '5') return 'dolby_vision_profile_5';
+        if (isKnownDirectFriendly(item)) return 'direct_friendly_h264';
+        return '';
     }
 
     function directStreamUrl(item, target) {
@@ -2627,8 +2640,9 @@
         var mode = cfg.playbackMode || DEFAULTS.playbackMode;
         var shouldTranscode = item.ratingKey && (mode === 'transcode' || (mode === 'auto' && s.plexConnectionRelay));
         if (shouldTranscode && shouldAvoidPlexTranscode(item)) {
-            log('Plex transcode avoided for Dolby Vision Profile 5', { ratingKey: item.ratingKey, title: item.title || item.grandparentTitle, dolbyVisionProfile: dolbyVisionProfile(item) });
-            noty(t('dolbyVisionDirectFallback'));
+            var reason = transcodeAvoidReason(item);
+            log('Plex transcode avoided', { ratingKey: item.ratingKey, title: item.title || item.grandparentTitle, reason: reason, dolbyVisionProfile: dolbyVisionProfile(item), videoCodec: item.videoCodec });
+            noty(reason === 'dolby_vision_profile_5' ? t('dolbyVisionDirectFallback') : t('unsafeTranscodeDirectFallback'));
             return directStreamUrl(item, s);
         }
         if (shouldTranscode) return transcodeUrl(item, s, options);
