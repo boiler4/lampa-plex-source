@@ -1610,7 +1610,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.63-beta-dev',
+            version: '0.2.64-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1828,7 +1828,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.63-beta-dev',
+            'X-Plex-Version': '0.2.64-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2264,7 +2264,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.63-beta-dev',
+            'X-Plex-Version': '0.2.64-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2697,7 +2697,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.63-beta-dev'
+            'X-Plex-Version': '0.2.64-beta-dev'
         };
         var profiles = {
             ios: {
@@ -3460,7 +3460,7 @@
             if (durationMs) timeline.percent = Math.max(1, Math.min(89, Math.round(startOffsetMs / durationMs * 100)));
             timeline.duration = durationMs ? durationMs / 1000 : timeline.duration;
             timeline.continued = false;
-            timeline.stop_recording = true;
+            timeline.stop_recording = false;
         }
         else {
             timeline.time = 0;
@@ -4201,7 +4201,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.63-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.64-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4319,7 +4319,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.63-beta-dev' });
+        log('ready', { version: '0.2.64-beta-dev' });
     }
 
     (function wait() {
