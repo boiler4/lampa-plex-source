@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.20-beta-dev',
+            version: '0.2.21-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.20-beta-dev',
+            'X-Plex-Version': '0.2.21-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.20-beta-dev',
+            'X-Plex-Version': '0.2.21-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2336,9 +2336,18 @@
         }).filter(function (stream) { return !type || stream.streamType === String(type); });
     }
 
-    function mapVideo(video, card, target) {
-        var media = video.querySelector('Media');
-        var part = media ? media.querySelector('Part') : null;
+    function mediaVersionLabel(media, part, index) {
+        var bits = [];
+        if (media && attr(media, 'optimizedForStreaming') === '1') bits.push('Optimized');
+        if (media && attr(media, 'videoResolution')) bits.push(String(attr(media, 'videoResolution')).toUpperCase());
+        if (media && attr(media, 'videoCodec')) bits.push(String(attr(media, 'videoCodec')).toUpperCase());
+        if (media && attr(media, 'audioCodec')) bits.push(String(attr(media, 'audioCodec')).toUpperCase());
+        if (media && attr(media, 'bitrate')) bits.push(formatBitrate(attr(media, 'bitrate')));
+        if (!bits.length && typeof index !== 'undefined') bits.push('Version ' + (index + 1));
+        return bits.join(' · ');
+    }
+
+    function mapVideoMedia(video, card, target, media, part, mediaIndex, partIndex) {
         var videoStreams = mapStreams(part, 1);
         var audioStreams = mapStreams(part, 2);
         var subtitleStreams = mapStreams(part, 3);
@@ -2370,6 +2379,10 @@
             file: part ? attr(part, 'file') : '',
             partId: part ? attr(part, 'id') : '',
             mediaId: media ? attr(media, 'id') : '',
+            mediaIndex: typeof mediaIndex !== 'undefined' ? String(mediaIndex) : '0',
+            partIndex: typeof partIndex !== 'undefined' ? String(partIndex) : '0',
+            versionLabel: mediaVersionLabel(media, part, mediaIndex),
+            optimizedForStreaming: (media && attr(media, 'optimizedForStreaming') === '1') || (part && attr(part, 'optimizedForStreaming') === '1') ? '1' : '',
             videoStreams: videoStreams,
             audioStreams: audioStreams,
             subtitleStreams: subtitleStreams,
@@ -2381,6 +2394,26 @@
             plexConnectionRelay: target && target.relay,
             plexConnectionMeta: target && target.meta
         };
+    }
+
+    function mapVideo(video, card, target) {
+        var media = video.querySelector('Media');
+        var part = media ? media.querySelector('Part') : null;
+        return mapVideoMedia(video, card, target, media, part, 0, 0);
+    }
+
+    function mapVideoVersions(video, card, target) {
+        var medias = nodes(video, 'Media');
+        if (!medias.length) return [mapVideo(video, card, target)];
+        var out = [];
+        medias.forEach(function (media, mediaIndex) {
+            var parts = nodes(media, 'Part');
+            if (!parts.length) out.push(mapVideoMedia(video, card, target, media, null, mediaIndex, 0));
+            parts.forEach(function (part, partIndex) {
+                out.push(mapVideoMedia(video, card, target, media, part, mediaIndex, partIndex));
+            });
+        });
+        return out;
     }
 
     function findMatches(card) {
@@ -2400,7 +2433,7 @@
                     jobs.push(fetchXmlFrom(target, '/library/all', { type: type, title: title, includeGuids: '1' })
                         .then(function (doc) {
                             var selector = type === '2' ? 'Directory,Video' : 'Video';
-                            var mapped = nodes(doc, selector).map(function (v) { return mapVideo(v, card, target); });
+                            var mapped = []; nodes(doc, selector).forEach(function (v) { mapped = mapped.concat(mapVideoVersions(v, card, target)); });
                             log('findMatches:query result', { server: target.serverName, base: target.base, title: title, type: type, selector: selector, count: mapped.length, mapped: mapped });
                             return mapped;
                         })
@@ -2413,7 +2446,7 @@
             groups.forEach(function (items) {
                 items.forEach(function (item) {
                     if (!item.ratingKey) return;
-                    var key = (item.plexServerKey || item.plexBase || 'plex') + ':' + item.ratingKey;
+                    var key = (item.plexServerKey || item.plexBase || 'plex') + ':' + item.ratingKey + ':' + (item.mediaId || '') + ':' + (item.partId || item.partKey || '');
                     if (!byKey[key] || item.score > byKey[key].score) byKey[key] = item;
                 });
             });
@@ -2456,7 +2489,9 @@
         var seasonRatingKey = season && season.ratingKey ? season.ratingKey : season;
         return fetchXmlFrom(itemTarget(season), '/library/metadata/' + encodeURIComponent(seasonRatingKey) + '/children', { includeGuids: '1' })
             .then(function (doc) {
-                return nodes(doc, 'Video').map(function (ep) { return mapVideo(ep, {}, itemTarget(season)); })
+                var episodes = [];
+                nodes(doc, 'Video').forEach(function (ep) { episodes = episodes.concat(mapVideoVersions(ep, {}, itemTarget(season))); });
+                return episodes
                     .filter(function (ep) { return ep.ratingKey && ep.partKey; })
                     .sort(function (a, b) { return (parseInt(a.index, 10) || 0) - (parseInt(b.index, 10) || 0); });
             });
@@ -2499,7 +2534,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.20-beta-dev',
+            'X-Plex-Version': '0.2.21-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -3360,9 +3395,12 @@
             var state = watchedInfo(match);
             if (state && state.label) subtitle.push(state.label);
         }
-        if (!isShow(card) && match.resolution) subtitle.push(String(match.resolution).toUpperCase());
-        if (!isShow(card) && match.videoCodec) subtitle.push(match.videoCodec.toUpperCase());
-        if (!isShow(card) && match.bitrate) subtitle.push(formatBitrate(match.bitrate));
+        if (!isShow(card) && match.versionLabel) subtitle.push(match.versionLabel);
+        else {
+            if (!isShow(card) && match.resolution) subtitle.push(String(match.resolution).toUpperCase());
+            if (!isShow(card) && match.videoCodec) subtitle.push(match.videoCodec.toUpperCase());
+            if (!isShow(card) && match.bitrate) subtitle.push(formatBitrate(match.bitrate));
+        }
 
         var sourceLabel = match.sectionTitle || 'Library';
         if (settings().serverMode === 'all' && match.plexServerName) sourceLabel += ' — ' + match.plexServerName;
