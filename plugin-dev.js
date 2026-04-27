@@ -1456,7 +1456,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.2-beta-dev',
+            version: '0.2.3-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1624,7 +1624,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.2-beta-dev',
+            'X-Plex-Version': '0.2.3-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2060,7 +2060,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.2-beta-dev',
+            'X-Plex-Version': '0.2.3-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2321,7 +2321,7 @@
                 'X-Plex-Token': s.plexToken,
                 'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
                 'X-Plex-Product': 'Plex Source for Lampa',
-                'X-Plex-Version': '0.2.2-beta-dev',
+                'X-Plex-Version': '0.2.3-beta-dev',
                 'X-Plex-Platform': 'Web'
             });
             return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
@@ -2374,15 +2374,18 @@
     }
 
 
-    function plexProgressFrom(item, state, timeMs) {
+    function plexProgressFrom(item, state, timeMs, durationMs) {
         if (!item || !item.ratingKey) return Promise.resolve(false);
+        var ratingKey = String(item.ratingKey);
         var params = {
-            key: item.ratingKey,
+            ratingKey: ratingKey,
+            key: '/library/metadata/' + ratingKey,
             identifier: 'com.plexapp.plugins.library',
             state: state || 'playing',
-            time: Math.max(0, Math.round(timeMs || 0))
+            time: Math.max(0, Math.round(timeMs || 0)),
+            duration: Math.max(0, Math.round(durationMs || item.duration || 0))
         };
-        return plexCommandFrom(itemTarget(item), '/:/progress', params).then(function () { return true; });
+        return plexCommandFrom(itemTarget(item), '/:/timeline', params).then(function () { return true; });
     }
 
     function startPlexProgressSync(item) {
@@ -2395,7 +2398,7 @@
             scrobbled: false,
             stopped: false
         };
-        log('Plex progress sync started', { ratingKey: item.ratingKey, durationMs: ACTIVE_PROGRESS_SYNC.durationMs, title: item.title || item.grandparentTitle });
+        log('Plex timeline sync started', { ratingKey: item.ratingKey, durationMs: ACTIVE_PROGRESS_SYNC.durationMs, title: item.title || item.grandparentTitle });
         sendPlexProgress('playing', 0, true);
     }
 
@@ -2411,10 +2414,10 @@
         sync.lastTimeMs = timeMs;
         if (!force && state === 'playing' && now - sync.lastSentAt < 10000) return;
         sync.lastSentAt = now;
-        plexProgressFrom(sync.item, state, timeMs).then(function () {
-            log('Plex progress sync sent', { state: state, timeMs: timeMs, ratingKey: sync.item.ratingKey });
+        plexProgressFrom(sync.item, state, timeMs, sync.durationMs).then(function () {
+            log('Plex timeline sync sent', { state: state, timeMs: timeMs, durationMs: sync.durationMs, ratingKey: sync.item.ratingKey });
         }).catch(function (err) {
-            log('Plex progress sync failed', { state: state, timeMs: timeMs, error: err && (err.stack || err.message || err) });
+            log('Plex timeline sync failed', { state: state, timeMs: timeMs, error: err && (err.stack || err.message || err) });
         });
     }
 
@@ -2466,7 +2469,7 @@
         });
         Lampa.Player.listener && Lampa.Player.listener.follow && Lampa.Player.listener.follow('external', function () {
             if (!ACTIVE_PROGRESS_SYNC) return;
-            log('Plex progress sync disabled for external player');
+            log('Plex timeline sync disabled for external player');
             clearPlexProgressSync();
         });
     }
