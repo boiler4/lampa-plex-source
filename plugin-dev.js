@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.54-beta-dev',
+            version: '0.2.55-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.54-beta-dev',
+            'X-Plex-Version': '0.2.55-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.54-beta-dev',
+            'X-Plex-Version': '0.2.55-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2681,7 +2681,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.54-beta-dev'
+            'X-Plex-Version': '0.2.55-beta-dev'
         };
         var profiles = {
             ios: {
@@ -2777,10 +2777,9 @@
             'X-Plex-Token': target.plexToken
         }, transcodeClientHeaders(target), transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.max(0, Math.round(options.startOffsetMs / 1000)));
-        if (options.audioStreamID) params.set('audioStreamID', options.audioStreamID);
         if (options.subtitleStreamID) params.set('subtitleStreamID', options.subtitleStreamID);
         if (/^\d+$/.test(params.get('videoResolution') || '')) params.delete('videoResolution');
-        log('Plex HLS transcode params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', videoResolution: params.get('videoResolution') || '', offset: params.get('offset') || '', clientProfile: settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile, platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), audioStreamID: params.get('audioStreamID') || '', subtitleStreamID: params.get('subtitleStreamID') || '' });
+        log('Plex HLS transcode params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', videoResolution: params.get('videoResolution') || '', offset: params.get('offset') || '', clientProfile: settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile, platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), requestedAudioStreamID: options.audioStreamID || '', urlAudioStreamID: params.get('audioStreamID') || '', subtitleStreamID: params.get('subtitleStreamID') || '', selectedStreamStrategy: options.audioStreamID ? 'part-put-only' : 'default' });
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
     }
 
@@ -4140,7 +4139,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.54-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.55-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4258,7 +4257,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.54-beta-dev' });
+        log('ready', { version: '0.2.55-beta-dev' });
     }
 
     (function wait() {
