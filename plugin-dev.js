@@ -1610,7 +1610,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.64-beta-dev',
+            version: '0.2.65-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1828,7 +1828,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.64-beta-dev',
+            'X-Plex-Version': '0.2.65-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2264,7 +2264,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.64-beta-dev',
+            'X-Plex-Version': '0.2.65-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2697,7 +2697,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.64-beta-dev'
+            'X-Plex-Version': '0.2.65-beta-dev'
         };
         var profiles = {
             ios: {
@@ -3857,7 +3857,7 @@
             if (onBack) onBack(); else openSeason(card, show, season);
         })) return true;
         showList(title, t('selectVersion') || 'Version', rows.map(function (row) {
-            return { title: row.title, meta: row.subtitle, onClick: function () { closeOverlay(true); playItemWithChoice(card, row.episode); } };
+            return { title: row.title, meta: row.subtitle, onClick: function () { closeOverlay(false); playItemWithChoice(card, row.episode); } };
         }), { back: function () { if (onBack) onBack(); else openSeason(card, show, season); } });
         return true;
     }
@@ -3942,7 +3942,7 @@
             titleEl.className = 'plex-source-card__title';
             titleEl.textContent = ep.title || t('episodeFallback');
             item.appendChild(titleEl);
-            item.onclick = function () { closeOverlay(true); playItemWithChoice(card, ep); };
+            item.onclick = function () { closeOverlay(false); playItemWithChoice(card, ep); };
             grid.appendChild(item);
         });
         wrap.appendChild(grid);
@@ -3996,7 +3996,7 @@
                 return {
                     title: 'E' + (ep.index || '?') + ' — ' + (ep.title || t('episodeFallback')),
                     meta: bits.join(' · '),
-                    onClick: function () { closeOverlay(true); handleEpisodeSelect(card, show, season, attachSeasonPlaylistMeta(Object.assign({}, ep, { versions: group.versions }), episodeGroups, group)); }
+                    onClick: function () { closeOverlay(false); handleEpisodeSelect(card, show, season, attachSeasonPlaylistMeta(Object.assign({}, ep, { versions: group.versions }), episodeGroups, group)); }
                 };
             }), {
                 back: function () { openShow(card, show, season.ratingKey); }
@@ -4201,7 +4201,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.64-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.65-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4319,7 +4319,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.64-beta-dev' });
+        log('ready', { version: '0.2.65-beta-dev' });
     }
 
     (function wait() {
