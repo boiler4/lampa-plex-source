@@ -10,6 +10,8 @@
     var OVERLAY_COLUMNS = 1;
     var SELECT_SERVER_COOLDOWN_UNTIL = 0;
     var TARGET_CACHE = { key: '', expiresAt: 0, targets: [] };
+    var ACTIVE_PROGRESS_SYNC = null;
+    var PROGRESS_SYNC_INSTALLED = false;
 
     var DEFAULTS = {
         enabled: true,
@@ -23,7 +25,8 @@
         matchLimit: 5,
         showOnlyExactYear: false,
         debug: false,
-        episodeActionMode: 'play_long_actions'
+        episodeActionMode: 'play_long_actions',
+        syncProgressToPlex: false
     };
 
     var I18N = {
@@ -139,7 +142,9 @@
                     "actionMarkUnwatched": "Отметить непросмотренным в Plex",
                     "markedWatched": "Отмечено просмотренным",
                     "markedUnwatched": "Отмечено непросмотренным",
-                    "markError": "Ошибка обновления Plex"
+                    "markError": "Ошибка обновления Plex",
+                    "syncProgressToPlex": "Синхронизация прогресса с Plex",
+                    "syncProgressToPlexDescription": "Экспериментально: отправлять прогресс встроенного плеера Lampa в Plex. Не работает с внешними плеерами."
             },
             "en": {
                     "component": "Plex Source",
@@ -255,7 +260,9 @@
                     "actionMarkUnwatched": "Mark unwatched in Plex",
                     "markedWatched": "Marked watched",
                     "markedUnwatched": "Marked unwatched",
-                    "markError": "Plex update failed"
+                    "markError": "Plex update failed",
+                    "syncProgressToPlex": "Sync progress to Plex",
+                    "syncProgressToPlexDescription": "Experimental: send Lampa integrated-player progress to Plex. Does not work with external players."
             },
             "uk": {
                     "component": "Plex Source",
@@ -1325,7 +1332,9 @@
                     "actionMarkUnwatched": "Segna non visto su Plex",
                     "markedWatched": "Segnato visto",
                     "markedUnwatched": "Segnato non visto",
-                    "markError": "Aggiornamento Plex fallito"
+                    "markError": "Aggiornamento Plex fallito",
+                    "syncProgressToPlex": "Sincronizza progresso su Plex",
+                    "syncProgressToPlexDescription": "Sperimentale: invia a Plex il progresso del player integrato Lampa. Non funziona con player esterni."
             }
     };
 
@@ -1368,7 +1377,8 @@
             matchLimit: parseInt(get('matchLimit', DEFAULTS.matchLimit), 10) || DEFAULTS.matchLimit,
             showOnlyExactYear: boolValue('showOnlyExactYear', DEFAULTS.showOnlyExactYear),
             debug: boolValue('debug', DEFAULTS.debug),
-            episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode)
+            episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode),
+            syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex)
         };
     }
 
@@ -1446,7 +1456,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.0-beta-dev',
+            version: '0.2.2-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1614,7 +1624,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.0-beta-dev',
+            'X-Plex-Version': '0.2.2-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2050,7 +2060,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.0-beta-dev',
+            'X-Plex-Version': '0.2.2-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2311,7 +2321,7 @@
                 'X-Plex-Token': s.plexToken,
                 'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
                 'X-Plex-Product': 'Plex Source for Lampa',
-                'X-Plex-Version': '0.2.0-beta-dev',
+                'X-Plex-Version': '0.2.2-beta-dev',
                 'X-Plex-Platform': 'Web'
             });
             return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
@@ -2364,6 +2374,103 @@
     }
 
 
+    function plexProgressFrom(item, state, timeMs) {
+        if (!item || !item.ratingKey) return Promise.resolve(false);
+        var params = {
+            key: item.ratingKey,
+            identifier: 'com.plexapp.plugins.library',
+            state: state || 'playing',
+            time: Math.max(0, Math.round(timeMs || 0))
+        };
+        return plexCommandFrom(itemTarget(item), '/:/progress', params).then(function () { return true; });
+    }
+
+    function startPlexProgressSync(item) {
+        if (!settings().syncProgressToPlex || !item || !item.ratingKey) return;
+        ACTIVE_PROGRESS_SYNC = {
+            item: item,
+            lastSentAt: 0,
+            lastTimeMs: 0,
+            durationMs: parseInt(item.duration || '0', 10) || 0,
+            scrobbled: false,
+            stopped: false
+        };
+        log('Plex progress sync started', { ratingKey: item.ratingKey, durationMs: ACTIVE_PROGRESS_SYNC.durationMs, title: item.title || item.grandparentTitle });
+        sendPlexProgress('playing', 0, true);
+    }
+
+    function clearPlexProgressSync() {
+        ACTIVE_PROGRESS_SYNC = null;
+    }
+
+    function sendPlexProgress(state, timeMs, force) {
+        var sync = ACTIVE_PROGRESS_SYNC;
+        if (!sync || !sync.item || !sync.item.ratingKey) return;
+        var now = Date.now();
+        timeMs = Math.max(0, Math.round(timeMs || sync.lastTimeMs || 0));
+        sync.lastTimeMs = timeMs;
+        if (!force && state === 'playing' && now - sync.lastSentAt < 10000) return;
+        sync.lastSentAt = now;
+        plexProgressFrom(sync.item, state, timeMs).then(function () {
+            log('Plex progress sync sent', { state: state, timeMs: timeMs, ratingKey: sync.item.ratingKey });
+        }).catch(function (err) {
+            log('Plex progress sync failed', { state: state, timeMs: timeMs, error: err && (err.stack || err.message || err) });
+        });
+    }
+
+    function maybeScrobblePlexProgress(timeMs, durationMs) {
+        var sync = ACTIVE_PROGRESS_SYNC;
+        if (!sync || sync.scrobbled || !sync.item || !sync.item.ratingKey) return;
+        durationMs = durationMs || sync.durationMs || 0;
+        if (!durationMs || timeMs < Math.max(durationMs * 0.85, durationMs - 5 * 60 * 1000)) return;
+        sync.scrobbled = true;
+        plexCommandFrom(itemTarget(sync.item), '/:/scrobble', {
+            key: sync.item.ratingKey,
+            identifier: 'com.plexapp.plugins.library'
+        }).then(function () {
+            log('Plex progress sync scrobbled', { ratingKey: sync.item.ratingKey });
+        }).catch(function (err) {
+            log('Plex progress sync scrobble failed', err && (err.stack || err.message || err));
+        });
+    }
+
+    function installPlexProgressSync() {
+        if (PROGRESS_SYNC_INSTALLED || !Lampa.PlayerVideo || !Lampa.PlayerVideo.listener) return;
+        PROGRESS_SYNC_INSTALLED = true;
+        Lampa.PlayerVideo.listener.follow('timeupdate', function (e) {
+            if (!ACTIVE_PROGRESS_SYNC) return;
+            var currentMs = Math.round((e && e.current ? e.current : 0) * 1000);
+            var durationMs = Math.round((e && e.duration ? e.duration : 0) * 1000) || ACTIVE_PROGRESS_SYNC.durationMs;
+            ACTIVE_PROGRESS_SYNC.durationMs = durationMs || ACTIVE_PROGRESS_SYNC.durationMs;
+            sendPlexProgress('playing', currentMs, false);
+            maybeScrobblePlexProgress(currentMs, ACTIVE_PROGRESS_SYNC.durationMs);
+        });
+        Lampa.PlayerVideo.listener.follow('play', function () {
+            if (ACTIVE_PROGRESS_SYNC) sendPlexProgress('playing', ACTIVE_PROGRESS_SYNC.lastTimeMs, true);
+        });
+        Lampa.PlayerVideo.listener.follow('pause', function () {
+            if (ACTIVE_PROGRESS_SYNC) sendPlexProgress('paused', ACTIVE_PROGRESS_SYNC.lastTimeMs, true);
+        });
+        Lampa.PlayerVideo.listener.follow('ended', function () {
+            if (!ACTIVE_PROGRESS_SYNC) return;
+            var sync = ACTIVE_PROGRESS_SYNC;
+            var endMs = sync.durationMs || sync.lastTimeMs;
+            maybeScrobblePlexProgress(endMs, sync.durationMs);
+            sendPlexProgress('stopped', endMs, true);
+            clearPlexProgressSync();
+        });
+        Lampa.Player.listener && Lampa.Player.listener.follow && Lampa.Player.listener.follow('destroy', function () {
+            if (!ACTIVE_PROGRESS_SYNC) return;
+            sendPlexProgress('stopped', ACTIVE_PROGRESS_SYNC.lastTimeMs, true);
+            clearPlexProgressSync();
+        });
+        Lampa.Player.listener && Lampa.Player.listener.follow && Lampa.Player.listener.follow('external', function () {
+            if (!ACTIVE_PROGRESS_SYNC) return;
+            log('Plex progress sync disabled for external player');
+            clearPlexProgressSync();
+        });
+    }
+
     function probePlaybackUrl(url) {
         var cfg = settings();
         if (!cfg.debug || !cfg.plexConnectionRelay || !url) return;
@@ -2403,8 +2510,9 @@
             plex: { ratingKey: item.ratingKey, sectionTitle: item.sectionTitle }
         };
 
-        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url) });
+        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex });
         probePlaybackUrl(data.url);
+        startPlexProgressSync(item);
         Lampa.Player.play(data);
         Lampa.Player.playlist([{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }]);
     }
@@ -3068,6 +3176,7 @@
         add({ type: 'button', name: component + '_match_limit', field: { name: t('matchLimit'), description: t('limitDescription') }, onChange: function () { promptText(t('matchLimit'), String(DEFAULTS.matchLimit), String(settings().matchLimit), function (v) { var n = parseInt(v, 10); save({ matchLimit: n > 0 ? n : DEFAULTS.matchLimit }); noty(t('savedLimit')); }); } });
         add({ type: 'trigger', name: component + '_exact_year', default: settings().showOnlyExactYear, field: { name: t('exactYear'), description: t('exactYearDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.showOnlyExactYear); save({ showOnlyExactYear: next }); noty(t('exactYear') + ': ' + (next ? t('on') : t('off'))); } });
         add({ type: 'select', name: component + '_episode_action_mode', values: { play_long_actions: t('modePlayLong'), actions: t('modeActions') }, default: settings().episodeActionMode, field: { name: t('episodeActionMode'), description: t('episodeActionModeDescription') }, onChange: function (value) { save({ episodeActionMode: value || DEFAULTS.episodeActionMode }); } });
+        add({ type: 'trigger', name: component + '_sync_progress_to_plex', default: settings().syncProgressToPlex, field: { name: t('syncProgressToPlex'), description: t('syncProgressToPlexDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.syncProgressToPlex); save({ syncProgressToPlex: next }); noty(t('syncProgressToPlex') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_advanced', field: { name: t('advancedTitle') } });
         add({ type: 'button', name: component + '_client_id', field: { name: t('clientId'), description: t('clientDescription') }, onChange: function () { promptText(t('clientId'), DEFAULTS.clientId, settings().clientId, function (v) { save({ clientId: v.trim() || DEFAULTS.clientId }); noty(t('savedClient')); }); } });
@@ -3152,6 +3261,7 @@
         ensureStyle();
         addSettings();
         installSourceSelectWatcher();
+        installPlexProgressSync();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
         log('ready');
