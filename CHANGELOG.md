@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.2.1-beta - 2026-04-27
+
+- Fix installed plugin card metadata so Lampa shows `Plex Source` instead of `Без названия` / unnamed plugin.
+
 ## 0.2.0-beta - 2026-04-27
 
 - Add optional Plex PIN/OAuth login flow from Lampa settings.

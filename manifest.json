@@ -1,6 +1,6 @@
 {
   "slug": "lampa-plex-source",
-  "version": "0.2.0-beta",
+  "version": "0.2.1-beta",
   "description": "Frontend-only Plex source plugin for Lampa: Plex login, server discovery, movies, TV seasons/episodes, all-server matching, and Plex watched actions.",
   "entry": "plugin.js",
   "author": "Yury",

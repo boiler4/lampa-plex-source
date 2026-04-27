@@ -1446,7 +1446,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.0-beta-dev',
+            version: '0.2.1-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1614,7 +1614,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.0-beta-dev',
+            'X-Plex-Version': '0.2.1-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2050,7 +2050,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.0-beta-dev',
+            'X-Plex-Version': '0.2.1-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2311,7 +2311,7 @@
                 'X-Plex-Token': s.plexToken,
                 'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
                 'X-Plex-Product': 'Plex Source for Lampa',
-                'X-Plex-Version': '0.2.0-beta-dev',
+                'X-Plex-Version': '0.2.1-beta-dev',
                 'X-Plex-Platform': 'Web'
             });
             return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
@@ -3108,27 +3108,43 @@
         try {
             var changed = false;
             var currentSrc = '';
+            var meta = {
+                name: 'Plex Source',
+                title: 'Plex Source',
+                author: 'boiler4',
+                descr: 'Frontend-only Plex source for Lampa',
+                description: 'Frontend-only Plex source for Lampa'
+            };
             try {
                 if (document && document.currentScript && document.currentScript.src) currentSrc = String(document.currentScript.src || '');
             } catch (e) {}
             var markers = [
                 'lampa-plex-source',
-                'plugin.js',
+                'boiler4/lampa-plex-source',
+                'cdn.jsdelivr.net/gh/boiler4',
                 currentSrc
             ].filter(Boolean);
+            function patchPlugin(plug) {
+                var url = String((plug && (plug.url || plug.link)) || '');
+                if (!plug || !url) return false;
+                var matched = markers.some(function (part) { return part && url.indexOf(part) >= 0; });
+                if (!matched) return false;
+                var touched = false;
+                Object.keys(meta).forEach(function (key) {
+                    if (plug[key] !== meta[key]) { plug[key] = meta[key]; touched = true; }
+                });
+                return touched;
+            }
             function patchList(list) {
                 if (!Array.isArray(list)) return false;
                 var touched = false;
-                list.forEach(function (plug) {
-                    var url = String((plug && (plug.url || plug.link)) || '');
-                    if (!plug || !url) return;
-                    var matched = markers.some(function (part) { return part && url.indexOf(part) >= 0; });
-                    if (!matched) return;
-                    if (plug.name !== 'Plex Source') { plug.name = 'Plex Source'; touched = true; }
-                    if (plug.author !== 'boiler4') { plug.author = 'boiler4'; touched = true; }
-                    if (plug.descr !== 'Frontend-only Plex source for Lampa') { plug.descr = 'Frontend-only Plex source for Lampa'; touched = true; }
-                });
+                list.forEach(function (plug) { touched = patchPlugin(plug) || touched; });
                 return touched;
+            }
+            function parseList(value) {
+                if (Array.isArray(value)) return value;
+                try { return JSON.parse(String(value || '[]')); }
+                catch (e) { return []; }
             }
             if (Lampa.Plugins && Lampa.Plugins.get && Lampa.Plugins.save) {
                 changed = patchList(Lampa.Plugins.get()) || changed;
@@ -3136,11 +3152,22 @@
             }
             try {
                 var stored = Lampa.Storage.get('plugins', '[]');
-                if (patchList(stored)) {
-                    Lampa.Storage.set('plugins', stored);
+                var parsed = parseList(stored);
+                if (patchList(parsed)) {
+                    Lampa.Storage.set('plugins', parsed);
                     changed = true;
                 }
             } catch (storageError) {}
+            try {
+                if (window.localStorage) {
+                    var raw = localStorage.getItem('plugins') || '[]';
+                    var arr = parseList(raw);
+                    if (patchList(arr)) {
+                        localStorage.setItem('plugins', JSON.stringify(arr));
+                        changed = true;
+                    }
+                }
+            } catch (localStorageError) {}
             log('annotate installed plugin', { changed: changed, src: currentSrc });
         }
         catch (e) { log('annotate installed plugin failed', e && (e.stack || e.message || e)); }
@@ -3152,6 +3179,8 @@
         ensureStyle();
         addSettings();
         installSourceSelectWatcher();
+        annotateInstalledPlugin();
+        observeInstalledPluginDom();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
         log('ready');
