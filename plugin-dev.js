@@ -12,6 +12,7 @@
     var TARGET_CACHE = { key: '', expiresAt: 0, targets: [] };
     var ACTIVE_PROGRESS_SYNC = null;
     var PROGRESS_SYNC_INSTALLED = false;
+    var ACTIVE_PLAY_CONTEXT = null;
 
     var DEFAULTS = {
         enabled: true,
@@ -1568,7 +1569,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.40-beta-dev',
+            version: '0.2.41-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1786,7 +1787,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.40-beta-dev',
+            'X-Plex-Version': '0.2.41-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2222,7 +2223,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.40-beta-dev',
+            'X-Plex-Version': '0.2.41-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2583,7 +2584,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.40-beta-dev'
+            'X-Plex-Version': '0.2.41-beta-dev'
         };
         if (profile === 'ios') {
             return Object.assign(base, {
@@ -2648,9 +2649,16 @@
         options = Object.assign({}, options || {});
         var liveOffset = currentPlayerOffsetMs();
         if (liveOffset > 0) options.startOffsetMs = liveOffset;
-        var url = transcodeUrl(item, target, options);
-        log('switch Plex transcode stream', { ratingKey: item && item.ratingKey, audioStreamID: options.audioStreamID, subtitleStreamID: options.subtitleStreamID, offset: options.startOffsetMs || 0 });
+        delete options.sessionNonce;
+        options.streamsEnriched = true;
+        var context = ACTIVE_PLAY_CONTEXT && ACTIVE_PLAY_CONTEXT.item === item ? ACTIVE_PLAY_CONTEXT : null;
+        log('switch Plex transcode stream', { ratingKey: item && item.ratingKey, audioStreamID: options.audioStreamID, subtitleStreamID: options.subtitleStreamID, offset: options.startOffsetMs || 0, restart: !!context });
         try {
+            if (context && context.card) {
+                playItem(context.card, item, options);
+                return;
+            }
+            var url = transcodeUrl(item, target, options);
             if (Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) Lampa.PlayerVideo.destroy(true);
             if (Lampa.PlayerVideo && Lampa.PlayerVideo.url) Lampa.PlayerVideo.url(url, true);
         }
@@ -3124,7 +3132,8 @@
             plex: { ratingKey: item.ratingKey, sectionTitle: item.sectionTitle }
         };
 
-        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex, playbackMode: settings().playbackMode, transcodeProfile: settings().transcodeProfile });
+        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex, playbackMode: settings().playbackMode, transcodeProfile: settings().transcodeProfile, audioStreamID: options.audioStreamID || '', subtitleStreamID: options.subtitleStreamID || '' });
+        ACTIVE_PLAY_CONTEXT = { card: card, item: item, options: Object.assign({}, options) };
         probePlaybackUrl(data.url);
         startPlexProgressSync(item);
         if (ACTIVE_PROGRESS_SYNC && startOffsetMs > 0) ACTIVE_PROGRESS_SYNC.lastTimeMs = startOffsetMs;
@@ -3832,7 +3841,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.40-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.41-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
