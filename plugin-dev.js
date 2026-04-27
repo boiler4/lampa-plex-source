@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.29-beta-dev',
+            version: '0.2.30-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.29-beta-dev',
+            'X-Plex-Version': '0.2.30-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.29-beta-dev',
+            'X-Plex-Version': '0.2.30-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2559,7 +2559,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Safari',
-            'X-Plex-Version': '0.2.29-beta-dev',
+            'X-Plex-Version': '0.2.30-beta-dev',
             'X-Plex-Platform': 'iOS',
             'X-Plex-Device': 'iPhone',
             'X-Plex-Device-Name': 'Lampa iOS HLS',
@@ -2939,7 +2939,16 @@
         };
     }
 
+    function isHlsTranscodeActive(item) {
+        var target = targetSettings(itemTarget(item));
+        return shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item);
+    }
+
     function seasonPlaylistFor(card, selectedItem) {
+        if (isHlsTranscodeActive(selectedItem)) {
+            log('season playlist disabled for HLS transcode to avoid parallel Plex sessions', { ratingKey: selectedItem && selectedItem.ratingKey });
+            return null;
+        }
         var groups = selectedItem && selectedItem.seasonEpisodeGroups;
         if (!groups || !groups.length) return null;
         var selectedKey = selectedItem && selectedItem.playlistGroupKey;
