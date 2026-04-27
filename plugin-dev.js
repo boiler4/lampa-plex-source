@@ -27,8 +27,8 @@
         debug: false,
         episodeActionMode: 'play_long_actions',
         syncProgressToPlex: false,
-        playbackMode: 'transcode',
-        transcodeProfile: 'ios_compat'
+        playbackMode: 'direct',
+        transcodeProfile: 'browser_compat'
     };
 
     var I18N = {
@@ -1442,7 +1442,7 @@
             debug: boolValue('debug', DEFAULTS.debug),
             episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode),
             syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex),
-            playbackMode: 'transcode',
+            playbackMode: 'direct',
             transcodeProfile: DEFAULTS.transcodeProfile
         };
     }
@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.32-beta-dev',
+            version: '0.2.33-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.32-beta-dev',
+            'X-Plex-Version': '0.2.33-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.32-beta-dev',
+            'X-Plex-Version': '0.2.33-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2559,7 +2559,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Web',
-            'X-Plex-Version': '0.2.32-beta-dev',
+            'X-Plex-Version': '0.2.33-beta-dev',
             'X-Plex-Platform': 'Chrome',
             'X-Plex-Platform-Version': '120',
             'X-Plex-Model': 'standalone',
@@ -2597,7 +2597,7 @@
     }
 
     function shouldExposePlexTranscodeControls(target) {
-        return !!target;
+        return false;
     }
 
     function plexAudioTracks(item, target, options) {
@@ -2691,10 +2691,6 @@
 
     function streamUrl(item, options) {
         if (!item || !item.partKey) return '';
-        var target = targetSettings(itemTarget(item));
-        if (shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item)) {
-            return transcodeUrl(item, target, Object.assign({}, options || {}, { transcodeProfile: 'ios_compat' }));
-        }
         return directStreamUrl(item, itemTarget(item));
     }
 
