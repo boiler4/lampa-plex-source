@@ -1551,10 +1551,25 @@
         return value;
     }
 
+    function compactDebugValue(value, depth) {
+        if (depth > 3) return '[nested]';
+        if (Array.isArray(value)) return value.slice(0, 8).map(function (item) { return compactDebugValue(item, depth + 1); });
+        if (value && typeof value === 'object') {
+            var out = {};
+            Object.keys(value).slice(0, 28).forEach(function (key) {
+                if (key === 'file' || key === 'plexToken' || key === 'token') out[key] = value[key] ? '***' : value[key];
+                else out[key] = compactDebugValue(value[key], depth + 1);
+            });
+            return out;
+        }
+        if (typeof value === 'string' && value.length > 500) return value.slice(0, 500) + '…';
+        return value;
+    }
+
     function debugString(item) {
-        if (typeof item === 'string') return redactDebugValue('', item);
-        try { return JSON.stringify(item, redactDebugValue, 2); }
-        catch (e) { return String(item); }
+        if (typeof item === 'string') return redactDebugValue('', item).slice(0, 900);
+        try { return JSON.stringify(compactDebugValue(item, 0), redactDebugValue, 2); }
+        catch (e) { return String(item).slice(0, 900); }
     }
 
     function log() {
@@ -1562,12 +1577,13 @@
         var args = [].slice.call(arguments);
         try {
             DEBUG_BUFFER.push({ time: new Date().toLocaleTimeString(), args: args.map(debugString) });
-            if (DEBUG_BUFFER.length > 80) DEBUG_BUFFER.shift();
+            if (DEBUG_BUFFER.length > 45) DEBUG_BUFFER.shift();
             window.PlexSourceDebug = DEBUG_BUFFER;
         }
         catch (e) {}
         if (!window.console) return;
-        console.log.apply(console, ['[plex-source]'].concat(args));
+        try { console.log.apply(console, ['[plex-source]'].concat(args.map(function (arg) { return compactDebugValue(arg, 0); }))); }
+        catch (e) {}
     }
 
     function debugText() {
@@ -1594,7 +1610,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.62-beta-dev',
+            version: '0.2.63-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1828,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.62-beta-dev',
+            'X-Plex-Version': '0.2.63-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2264,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.62-beta-dev',
+            'X-Plex-Version': '0.2.63-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2567,7 +2583,7 @@
                         .then(function (doc) {
                             var selector = type === '2' ? 'Directory,Video' : 'Video';
                             var mapped = []; nodes(doc, selector).forEach(function (v) { mapped = mapped.concat(mapVideoVersions(v, card, target)); });
-                            log('findMatches:query result', { server: target.serverName, base: target.base, title: title, type: type, selector: selector, count: mapped.length, mapped: mapped });
+                            log('findMatches:query result', { server: target.serverName, base: target.base, title: title, type: type, selector: selector, count: mapped.length, mapped: mapped.map(function (m) { return { score: m.score, ratingKey: m.ratingKey, title: m.title, year: m.year, partId: m.partId, mediaId: m.mediaId, versionLabel: m.versionLabel, viewOffset: m.viewOffset, server: m.plexServerName }; }) });
                             return mapped;
                         })
                         .catch(function (err) { log('match query failed', { server: target.serverName, title: title, error: err && (err.stack || err.message || err) }); return []; }));
@@ -2681,7 +2697,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.62-beta-dev'
+            'X-Plex-Version': '0.2.63-beta-dev'
         };
         var profiles = {
             ios: {
@@ -4099,7 +4115,7 @@
         root.find('.view--plex-source').remove();
         (matches || []).forEach(function (match) {
             if (!isShow(e.data.movie) && !match.partKey) return;
-            log('attachButtons: append match', match);
+            log('attachButtons: append match', { ratingKey: match.ratingKey, title: match.title, year: match.year, partId: match.partId, versionLabel: match.versionLabel, viewOffset: match.viewOffset, server: match.plexServerName });
             container.append(buildButton(e.data.movie, match));
         });
         log('attachButtons: final button count', root.find('.view--plex-source').length);
@@ -4138,7 +4154,7 @@
         if (!s.enabled) { log('plugin disabled'); return; }
         if (!s.plexToken || (s.serverMode !== 'all' && !s.plexBase)) { log('skip: missing Plex config'); return; }
         findMatches(card).then(function (matches) {
-            log('matches result', { count: matches.length, matches: matches });
+            log('matches result', { count: matches.length, matches: matches.map(function (m) { return { score: m.score, ratingKey: m.ratingKey, title: m.title, year: m.year, partId: m.partId, versionLabel: m.versionLabel, viewOffset: m.viewOffset, server: m.plexServerName }; }) });
             attachButtons(e, matches);
         }).catch(function (err) {
             log('lookup failed', err && (err.stack || err.message || err));
@@ -4185,7 +4201,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.62-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.63-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4303,7 +4319,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.62-beta-dev' });
+        log('ready', { version: '0.2.63-beta-dev' });
     }
 
     (function wait() {
