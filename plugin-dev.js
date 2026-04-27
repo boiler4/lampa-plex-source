@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.36-beta-dev',
+            version: '0.2.37-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.36-beta-dev',
+            'X-Plex-Version': '0.2.37-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.36-beta-dev',
+            'X-Plex-Version': '0.2.37-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2559,7 +2559,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Safari',
-            'X-Plex-Version': '0.2.36-beta-dev',
+            'X-Plex-Version': '0.2.37-beta-dev',
             'X-Plex-Platform': 'iOS',
             'X-Plex-Device': 'iPhone',
             'X-Plex-Device-Name': 'Lampa iOS HLS',
@@ -2616,8 +2616,24 @@
         });
     }
 
-    function plexSubtitleTracks(item, target) {
+    function plexSubtitleTracks(item, target, options) {
         if (!item || !item.subtitleStreams || !item.subtitleStreams.length) return null;
+        if (shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item)) {
+            var transcodeSubs = item.subtitleStreams.filter(function (stream) { return stream.id; }).map(function (stream, idx) {
+                var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || ('Subtitle ' + (idx + 1));
+                return {
+                    index: idx,
+                    id: stream.id,
+                    language: stream.language || stream.languageCode || '',
+                    label: label + (stream.forced === '1' ? ' forced' : ''),
+                    selected: stream.selected === '1',
+                    onSelect: function () {
+                        switchPlexTranscodeStream(item, target, Object.assign({}, options || {}, { subtitleStreamID: stream.id }));
+                    }
+                };
+            });
+            if (transcodeSubs.length) return transcodeSubs;
+        }
         var out = item.subtitleStreams.filter(function (stream) {
             return stream.key && /^(srt|ass|ssa|vtt)$/i.test(stream.codec || stream.format || '');
         }).map(function (stream, idx) {
@@ -3037,7 +3053,7 @@
             title: title.replace(/<[^>]*>?/gm, ''),
             quality: plexQualityMap(item, target, options),
             voiceovers: plexAudioTracks(item, target, options),
-            subtitles: plexSubtitleTracks(item, target),
+            subtitles: plexSubtitleTracks(item, target, options),
             timeline: timeline,
             card: card,
             thumbnail: thumbUrl(item.thumb, item) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
@@ -3753,7 +3769,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.36-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.37-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
