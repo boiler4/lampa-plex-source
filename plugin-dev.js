@@ -13,6 +13,7 @@
     var ACTIVE_PROGRESS_SYNC = null;
     var PROGRESS_SYNC_INSTALLED = false;
     var ACTIVE_PLAY_CONTEXT = null;
+    var HLS_SWITCH_REOPEN_UNTIL = 0;
 
     var DEFAULTS = {
         enabled: true,
@@ -1593,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.43-beta-dev',
+            version: '0.2.44-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1811,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.43-beta-dev',
+            'X-Plex-Version': '0.2.44-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2247,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.43-beta-dev',
+            'X-Plex-Version': '0.2.44-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2608,7 +2609,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.43-beta-dev'
+            'X-Plex-Version': '0.2.44-beta-dev'
         };
         var profiles = {
             ios: {
@@ -2728,19 +2729,23 @@
         var context = ACTIVE_PLAY_CONTEXT && ACTIVE_PLAY_CONTEXT.item === item ? ACTIVE_PLAY_CONTEXT : null;
         log('switch Plex transcode stream', { ratingKey: item && item.ratingKey, audioStreamID: options.audioStreamID, subtitleStreamID: options.subtitleStreamID, offset: options.startOffsetMs || 0, restart: !!context });
         try {
+            HLS_SWITCH_REOPEN_UNTIL = Date.now() + 8000;
             if (context && context.card) {
-                if (Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) Lampa.PlayerVideo.destroy(true);
+                if (Lampa.Player && Lampa.Player.close) Lampa.Player.close();
+                else if (Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) Lampa.PlayerVideo.destroy(true);
                 clearPlexProgressSync();
                 setTimeout(function () {
                     playItem(context.card, item, options);
-                }, 250);
+                }, 650);
                 return;
             }
             var url = transcodeUrl(item, target, options);
-            if (Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) Lampa.PlayerVideo.destroy(true);
+            if (Lampa.Player && Lampa.Player.close) Lampa.Player.close();
+            else if (Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) Lampa.PlayerVideo.destroy(true);
+            clearPlexProgressSync();
             setTimeout(function () {
                 if (Lampa.PlayerVideo && Lampa.PlayerVideo.url) Lampa.PlayerVideo.url(url, true);
-            }, 250);
+            }, 650);
         }
         catch (e) { log('switch Plex transcode stream failed', e && (e.stack || e.message || e)); }
     }
@@ -3000,6 +3005,10 @@
         });
         Lampa.PlayerVideo.listener.follow('ended', function () {
             if (!ACTIVE_PROGRESS_SYNC) return;
+            if (Date.now() < HLS_SWITCH_REOPEN_UNTIL) {
+                log('Plex timeline ended ignored during HLS switch reopen', { ratingKey: ACTIVE_PROGRESS_SYNC.item && ACTIVE_PROGRESS_SYNC.item.ratingKey, lastTimeMs: ACTIVE_PROGRESS_SYNC.lastTimeMs || 0 });
+                return;
+            }
             var sync = ACTIVE_PROGRESS_SYNC;
             var lastMs = Math.max(0, sync.maxRealTimeMs || sync.lastTimeMs || 0);
             var durationMs = sync.durationMs || 0;
@@ -3013,6 +3022,10 @@
         });
         Lampa.Player.listener && Lampa.Player.listener.follow && Lampa.Player.listener.follow('destroy', function () {
             if (!ACTIVE_PROGRESS_SYNC) return;
+            if (Date.now() < HLS_SWITCH_REOPEN_UNTIL) {
+                log('Plex timeline destroy ignored during HLS switch reopen', { ratingKey: ACTIVE_PROGRESS_SYNC.item && ACTIVE_PROGRESS_SYNC.item.ratingKey, lastTimeMs: ACTIVE_PROGRESS_SYNC.lastTimeMs || 0 });
+                return;
+            }
             sendPlexProgress('stopped', ACTIVE_PROGRESS_SYNC.lastTimeMs, true);
             clearPlexProgressSync();
         });
@@ -3921,7 +3934,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.43-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.44-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
