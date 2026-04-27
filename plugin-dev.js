@@ -1446,7 +1446,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.1.0-beta-dev',
+            version: '0.2.0-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1614,7 +1614,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.1.0-beta',
+            'X-Plex-Version': '0.2.0-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2050,7 +2050,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.1.0-beta',
+            'X-Plex-Version': '0.2.0-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2311,7 +2311,7 @@
                 'X-Plex-Token': s.plexToken,
                 'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
                 'X-Plex-Product': 'Plex Source for Lampa',
-                'X-Plex-Version': '0.1.0-beta',
+                'X-Plex-Version': '0.2.0-beta-dev',
                 'X-Plex-Platform': 'Web'
             });
             return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();

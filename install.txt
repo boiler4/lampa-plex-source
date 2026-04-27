@@ -3,10 +3,10 @@ Plex Source for Lampa — install notes
 1. Host plugin.js at an HTTP/HTTPS URL reachable by the device running Lampa.
 
 Recommended URL:
-https://cdn.jsdelivr.net/gh/boiler4/lampa-plex-source@dev/plugin.js
+https://cdn.jsdelivr.net/gh/boiler4/lampa-plex-source@main/plugin.js
 
 Alternative raw GitHub URL:
-https://raw.githubusercontent.com/boiler4/lampa-plex-source/dev/plugin.js
+https://raw.githubusercontent.com/boiler4/lampa-plex-source/main/plugin.js
 
 2. In Lampa:
 - Settings

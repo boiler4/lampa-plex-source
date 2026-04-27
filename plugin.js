@@ -1446,7 +1446,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.1.0-beta-dev',
+            version: '0.2.0-beta',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1614,7 +1614,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.1.0-beta',
+            'X-Plex-Version': '0.2.0-beta',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2050,7 +2050,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.1.0-beta',
+            'X-Plex-Version': '0.2.0-beta',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2311,7 +2311,7 @@
                 'X-Plex-Token': s.plexToken,
                 'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
                 'X-Plex-Product': 'Plex Source for Lampa',
-                'X-Plex-Version': '0.1.0-beta',
+                'X-Plex-Version': '0.2.0-beta',
                 'X-Plex-Platform': 'Web'
             });
             return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
@@ -2892,11 +2892,63 @@
         return button;
     }
 
+    var ACTIVE_SOURCE_SELECT = null;
+
     function regroup(object) {
         try {
             if (object && object.items && object.items[0] && object.items[0].emit) object.items[0].emit('groupButtons');
         }
         catch (e) { log('groupButtons failed', e); }
+    }
+
+    function isSourceSelect(active) {
+        if (!active || !Array.isArray(active.items)) return false;
+        return active.items.some(function (item) {
+            return item && item.btn && item.btn.hasClass && item.btn.hasClass('full-start__button');
+        });
+    }
+
+    function installSourceSelectWatcher() {
+        try {
+            if (!Lampa.Select || !Lampa.Select.listener || installSourceSelectWatcher.installed) return;
+            installSourceSelectWatcher.installed = true;
+            Lampa.Select.listener.follow('fullshow', function (event) {
+                ACTIVE_SOURCE_SELECT = isSourceSelect(event && event.active) ? event.active : null;
+            });
+            Lampa.Select.listener.follow('hide', function () { ACTIVE_SOURCE_SELECT = null; });
+            Lampa.Select.listener.follow('close', function () { ACTIVE_SOURCE_SELECT = null; });
+        }
+        catch (e) { log('source select watcher failed', e && (e.stack || e.message || e)); }
+    }
+
+    function sourceItemsFromButtons(root) {
+        var items = [];
+        root.find('.buttons--container > .full-start__button').not('.hide').each(function () {
+            var btn = $(this);
+            var iconHtml = btn.find('svg').prop('outerHTML');
+            items.push({
+                title: btn.text(),
+                subtitle: btn.data('subtitle'),
+                template: typeof iconHtml == 'undefined' || iconHtml == 'undefined' ? 'selectbox_item' : 'selectbox_icon',
+                icon: iconHtml,
+                btn: btn
+            });
+        });
+        return items;
+    }
+
+    function refreshOpenSourceSelect(root) {
+        try {
+            if (!ACTIVE_SOURCE_SELECT || !Lampa.Select || !Lampa.Select.show || !document.body.classList.contains('selectbox--open')) return;
+            var nextItems = sourceItemsFromButtons(root);
+            var hadPlex = ACTIVE_SOURCE_SELECT.items.some(function (item) { return item && item.btn && item.btn.hasClass && item.btn.hasClass('view--plex-source'); });
+            var hasPlex = nextItems.some(function (item) { return item && item.btn && item.btn.hasClass && item.btn.hasClass('view--plex-source'); });
+            if (hadPlex === hasPlex && ACTIVE_SOURCE_SELECT.items.length === nextItems.length) return;
+            ACTIVE_SOURCE_SELECT.items = nextItems;
+            log('refresh open source select', { items: nextItems.length, hasPlex: hasPlex });
+            Lampa.Select.show(ACTIVE_SOURCE_SELECT);
+        }
+        catch (e) { log('refresh open source select failed', e && (e.stack || e.message || e)); }
     }
 
     function attachButtons(e, matches) {
@@ -2913,6 +2965,7 @@
         });
         log('attachButtons: final button count', root.find('.view--plex-source').length);
         regroup(e.object);
+        refreshOpenSourceSelect(root);
     }
 
     function debugCard(card) {
@@ -3098,6 +3151,7 @@
         window[READY_FLAG] = true;
         ensureStyle();
         addSettings();
+        installSourceSelectWatcher();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
         log('ready');
