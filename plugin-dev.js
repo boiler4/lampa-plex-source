@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.25-beta-dev',
+            version: '0.2.26-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.25-beta-dev',
+            'X-Plex-Version': '0.2.26-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.25-beta-dev',
+            'X-Plex-Version': '0.2.26-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2497,6 +2497,30 @@
             });
     }
 
+    function enrichItemStreams(item) {
+        if (!item || !item.ratingKey || (item._streamsEnriched || ((item.audioStreams || []).length || (item.subtitleStreams || []).length))) return Promise.resolve(item);
+        return fetchXmlFrom(itemTarget(item), '/library/metadata/' + encodeURIComponent(item.ratingKey), {}).then(function (doc) {
+            var videos = nodes(doc, 'Video');
+            var variants = [];
+            videos.forEach(function (video) { variants = variants.concat(mapVideoVersions(video, {}, itemTarget(item))); });
+            var found = variants.find(function (v) {
+                return (item.partId && v.partId === item.partId) || (item.partKey && v.partKey === item.partKey) || (item.mediaId && v.mediaId === item.mediaId);
+            }) || variants[0];
+            if (found) {
+                ['videoStreams', 'audioStreams', 'subtitleStreams', 'partId', 'mediaId', 'mediaIndex', 'partIndex', 'optimizedForStreaming', 'versionLabel'].forEach(function (key) {
+                    if (typeof found[key] !== 'undefined') item[key] = found[key];
+                });
+            }
+            item._streamsEnriched = true;
+            log('enriched Plex streams', { ratingKey: item.ratingKey, partId: item.partId, audio: (item.audioStreams || []).length, subtitles: (item.subtitleStreams || []).length });
+            return item;
+        }).catch(function (err) {
+            log('enrich Plex streams failed', { ratingKey: item.ratingKey, error: err && (err.stack || err.message || err) });
+            item._streamsEnriched = true;
+            return item;
+        });
+    }
+
     function transcodeProfileParams(profile) {
         var profiles = {
             audio_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'mp3', protocol: 'hls' },
@@ -2534,7 +2558,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.25-beta-dev',
+            'X-Plex-Version': '0.2.26-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
@@ -2931,6 +2955,12 @@
 
     function playItem(card, item, options) {
         options = options || {};
+        if (!options.streamsEnriched) {
+            enrichItemStreams(item).then(function (enriched) {
+                playItem(card, enriched, Object.assign({}, options, { streamsEnriched: true }));
+            });
+            return;
+        }
         if (isShow(card) && item && item.type === 'movie') {
             log('blocked stale Plex movie item for show card', { card: debugCard(card), item: { ratingKey: item.ratingKey, title: item.title, type: item.type } });
             noty(t('notPlayable'));
