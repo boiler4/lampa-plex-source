@@ -154,7 +154,7 @@
                     "playbackModeTranscode": "Plex transcode HLS",
                     "playbackModeDescription": "Авто = transcode для relay, прямой файл для direct. Transcode помогает встроенному плееру Lampa с кодеками.",
                     "transcodeProfile": "Профиль transcode",
-                    "transcodeBrowserCompat": "Совместимость браузера (та же резолюция)",
+                    "transcodeBrowserCompat": "Совместимость браузера (оригинальное качество)",
                     "transcode1080p20": "1080p 20 Mbps",
                     "transcode1080p12": "1080p 12 Mbps",
                     "transcode720p8": "720p 8 Mbps",
@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.37-beta-dev',
+            version: '0.2.38-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.37-beta-dev',
+            'X-Plex-Version': '0.2.38-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.37-beta-dev',
+            'X-Plex-Version': '0.2.38-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2525,7 +2525,7 @@
         var profiles = {
             ios_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls', videoResolution: '1080', maxVideoBitrate: '8000', videoBitrate: '8000', videoQuality: '60' },
             audio_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'mp3', protocol: 'hls' },
-            browser_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls', videoResolution: '1080', maxVideoBitrate: '8000', videoBitrate: '8000', videoQuality: '60' },
+            browser_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
             p1080_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '1080', protocol: 'hls' },
             p1080_12: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '12000', videoBitrate: '12000', videoResolution: '1080', protocol: 'hls' },
             p720_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '720', protocol: 'hls' },
@@ -2559,7 +2559,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Safari',
-            'X-Plex-Version': '0.2.37-beta-dev',
+            'X-Plex-Version': '0.2.38-beta-dev',
             'X-Plex-Platform': 'iOS',
             'X-Plex-Device': 'iPhone',
             'X-Plex-Device-Name': 'Lampa iOS HLS',
@@ -3769,7 +3769,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.37-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.38-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
