@@ -1531,7 +1531,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.13-beta-dev',
+            version: '0.2.14-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1749,7 +1749,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.13-beta-dev',
+            'X-Plex-Version': '0.2.14-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2185,7 +2185,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.13-beta-dev',
+            'X-Plex-Version': '0.2.14-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2477,6 +2477,13 @@
         options = options || {};
         var cfg = settings();
         var profile = (options && options.transcodeProfile) || cfg.transcodeProfile;
+        var sessionParts = [
+            'lps',
+            item.ratingKey || 'item',
+            profile || 'browser',
+            options.audioStreamID || 'a0',
+            options.subtitleStreamID || 's0'
+        ];
         var params = new URLSearchParams(Object.assign({
             path: '/library/metadata/' + item.ratingKey,
             mediaIndex: '0',
@@ -2484,10 +2491,11 @@
             fastSeek: '1',
             copyts: '1',
             subtitles: 'auto',
+            session: sessionParts.join('-').replace(/[^a-zA-Z0-9_-]/g, ''),
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.13-beta-dev',
+            'X-Plex-Version': '0.2.14-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
