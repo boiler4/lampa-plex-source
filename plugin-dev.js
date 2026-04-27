@@ -157,9 +157,17 @@
                     "playbackModeDescription": "Авто = transcode для relay, прямой файл для direct. Transcode помогает встроенному плееру Lampa с кодеками.",
                     "transcodeProfile": "Профиль transcode",
                     "transcodeClientProfile": "Тип клиентского профиля",
+                    "transcodeOptionsTitle": "Transcode / экспериментально",
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
-                    "transcodeClientProfileDescription": "Экспериментально: Web обычно лучше для 4K/remux, iOS иногда совместимее, но может ограничивать качество.",
+                    "transcodeClientAppleTv": "Apple TV",
+                    "transcodeClientAndroidTv": "Android TV",
+                    "transcodeClientLgWebos": "LG webOS TV",
+                    "transcodeClientSamsungTizen": "Samsung Tizen TV",
+                    "transcodeClientChromecast": "Chromecast",
+                    "transcodeClientRoku": "Roku",
+                    "transcodeClientGeneric": "Generic TV",
+                    "transcodeClientProfileDescription": "Экспериментально: профиль влияет на кодеки, remux, 4K/HDR и дорожки. Проверяйте в логах Plex: using profile ...",
                     "transcodeBrowserCompat": "Оригинальное качество / remux",
                     "transcode4k40": "4K 40 Mbps",
                     "transcode4k20": "4K 20 Mbps",
@@ -308,9 +316,17 @@
                     "playbackModeDescription": "Auto = transcode for relay, direct file for direct connections. Transcode helps Lampa integrated player with codecs.",
                     "transcodeProfile": "Transcode profile",
                     "transcodeClientProfile": "Client profile type",
+                    "transcodeOptionsTitle": "Transcode / experimental",
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
-                    "transcodeClientProfileDescription": "Experimental: Web is usually better for 4K/remux; iOS may be more compatible but can limit quality.",
+                    "transcodeClientAppleTv": "Apple TV",
+                    "transcodeClientAndroidTv": "Android TV",
+                    "transcodeClientLgWebos": "LG webOS TV",
+                    "transcodeClientSamsungTizen": "Samsung Tizen TV",
+                    "transcodeClientChromecast": "Chromecast",
+                    "transcodeClientRoku": "Roku",
+                    "transcodeClientGeneric": "Generic TV",
+                    "transcodeClientProfileDescription": "Experimental: profile affects codecs, remux, 4K/HDR and tracks. Check Plex logs: using profile ...",
                     "transcodeBrowserCompat": "Original quality / remux",
                     "transcode4k40": "4K 40 Mbps",
                     "transcode4k20": "4K 20 Mbps",
@@ -1413,9 +1429,17 @@
                     "playbackModeDescription": "Auto = transcodifica per relay, file diretto per connessioni direct. La transcodifica aiuta il player integrato Lampa con i codec.",
                     "transcodeProfile": "Profilo transcodifica",
                     "transcodeClientProfile": "Tipo profilo client",
+                    "transcodeOptionsTitle": "Transcode / sperimentale",
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
-                    "transcodeClientProfileDescription": "Sperimentale: Web di solito è meglio per 4K/remux; iOS può essere più compatibile ma può limitare qualità.",
+                    "transcodeClientAppleTv": "Apple TV",
+                    "transcodeClientAndroidTv": "Android TV",
+                    "transcodeClientLgWebos": "LG webOS TV",
+                    "transcodeClientSamsungTizen": "Samsung Tizen TV",
+                    "transcodeClientChromecast": "Chromecast",
+                    "transcodeClientRoku": "Roku",
+                    "transcodeClientGeneric": "Generic TV",
+                    "transcodeClientProfileDescription": "Sperimentale: il profilo influenza codec, remux, 4K/HDR e tracce. Controlla nei log Plex: using profile ...",
                     "transcodeBrowserCompat": "Qualità originale / remux",
                     "transcode4k40": "4K 40 Mbps",
                     "transcode4k20": "4K 20 Mbps",
@@ -1569,7 +1593,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.41-beta-dev',
+            version: '0.2.42-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1787,7 +1811,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.41-beta-dev',
+            'X-Plex-Version': '0.2.42-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2223,7 +2247,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.41-beta-dev',
+            'X-Plex-Version': '0.2.42-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2584,26 +2608,76 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.41-beta-dev'
+            'X-Plex-Version': '0.2.42-beta-dev'
         };
-        if (profile === 'ios') {
-            return Object.assign(base, {
+        var profiles = {
+            ios: {
                 'X-Plex-Product': 'Safari',
                 'X-Plex-Platform': 'iOS',
                 'X-Plex-Device': 'iPhone',
                 'X-Plex-Device-Name': 'Lampa iOS HLS',
                 'X-Plex-Client-Profile-Name': 'iOS'
-            });
-        }
-        return Object.assign(base, {
-            'X-Plex-Product': 'Plex Web',
-            'X-Plex-Platform': 'Chrome',
-            'X-Plex-Platform-Version': '120',
-            'X-Plex-Model': 'standalone',
-            'X-Plex-Device': 'Chrome',
-            'X-Plex-Device-Name': 'Lampa Plex Source',
-            'X-Plex-Device-Screen-Resolution': '3840x2160,3840x2160'
-        });
+            },
+            apple_tv: {
+                'X-Plex-Product': 'Plex for Apple TV',
+                'X-Plex-Platform': 'tvOS',
+                'X-Plex-Device': 'Apple TV',
+                'X-Plex-Device-Name': 'Lampa Apple TV HLS',
+                'X-Plex-Client-Profile-Name': 'Apple TV'
+            },
+            android_tv: {
+                'X-Plex-Product': 'Plex for Android TV',
+                'X-Plex-Platform': 'Android',
+                'X-Plex-Device': 'Android TV',
+                'X-Plex-Device-Name': 'Lampa Android TV HLS',
+                'X-Plex-Client-Profile-Name': 'Android'
+            },
+            lg_webos: {
+                'X-Plex-Product': 'Plex for LG',
+                'X-Plex-Platform': 'webOS',
+                'X-Plex-Device': 'LG TV',
+                'X-Plex-Device-Name': 'Lampa LG webOS HLS',
+                'X-Plex-Client-Profile-Name': 'LG TV'
+            },
+            samsung_tizen: {
+                'X-Plex-Product': 'Plex for Samsung',
+                'X-Plex-Platform': 'Tizen',
+                'X-Plex-Device': 'Samsung TV',
+                'X-Plex-Device-Name': 'Lampa Samsung Tizen HLS',
+                'X-Plex-Client-Profile-Name': 'Samsung TV'
+            },
+            chromecast: {
+                'X-Plex-Product': 'Plex for Chromecast',
+                'X-Plex-Platform': 'Chromecast',
+                'X-Plex-Device': 'Chromecast',
+                'X-Plex-Device-Name': 'Lampa Chromecast HLS',
+                'X-Plex-Client-Profile-Name': 'Chromecast'
+            },
+            roku: {
+                'X-Plex-Product': 'Plex for Roku',
+                'X-Plex-Platform': 'Roku',
+                'X-Plex-Device': 'Roku',
+                'X-Plex-Device-Name': 'Lampa Roku HLS',
+                'X-Plex-Client-Profile-Name': 'Roku'
+            },
+            generic: {
+                'X-Plex-Product': 'Plex Generic Client',
+                'X-Plex-Platform': 'Generic',
+                'X-Plex-Device': 'Generic TV',
+                'X-Plex-Device-Name': 'Lampa Generic HLS',
+                'X-Plex-Client-Profile-Name': 'Generic'
+            },
+            web: {
+                'X-Plex-Product': 'Plex Web',
+                'X-Plex-Platform': 'Chrome',
+                'X-Plex-Platform-Version': '120',
+                'X-Plex-Model': 'standalone',
+                'X-Plex-Device': 'Chrome',
+                'X-Plex-Device-Name': 'Lampa Plex Source',
+                'X-Plex-Device-Screen-Resolution': '3840x2160,3840x2160'
+            }
+        };
+        return Object.assign(base, profiles[profile] || profiles.web);
     }
 
     function transcodeUrl(item, target, options) {
@@ -3841,7 +3915,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.41-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.42-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -3867,9 +3941,10 @@
         add({ type: 'trigger', name: component + '_sync_progress_to_plex', default: settings().syncProgressToPlex, field: { name: t('syncProgressToPlex'), description: t('syncProgressToPlexDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.syncProgressToPlex); save({ syncProgressToPlex: next }); noty(t('syncProgressToPlex') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_options', field: { name: t('optionsTitle') } });
+        add({ type: 'title', name: component + '_title_transcode_options', field: { name: t('transcodeOptionsTitle') } });
         add({ type: 'select', name: component + '_playback_mode', values: { direct: t('playbackModeDirect'), transcode: t('playbackModeTranscode') }, default: settings().playbackMode, field: { name: t('playbackMode'), description: t('playbackModeDescription') }, onChange: function (value) { save({ playbackMode: value || DEFAULTS.playbackMode }); noty(t('playbackMode') + ': ' + (value || DEFAULTS.playbackMode)); } });
         add({ type: 'select', name: component + '_transcode_profile', values: { browser_compat: t('transcodeBrowserCompat'), p4k_40: t('transcode4k40'), p4k_20: t('transcode4k20'), p1080_20: t('transcode1080p20'), p1080_12: t('transcode1080p12'), p1080_10: t('transcode1080p10'), p1080_8: t('transcode1080p8'), p720_4: t('transcode720p4'), p720_3: t('transcode720p3'), p720_2: t('transcode720p2'), p480_1_5: t('transcode480p15'), p480_720: t('transcode480p720'), p320_320: t('transcode320p320') }, default: settings().transcodeProfile, field: { name: t('transcodeProfile'), description: t('transcodeProfileDescription') }, onChange: function (value) { save({ transcodeProfile: value || DEFAULTS.transcodeProfile }); noty(t('transcodeProfile') + ': ' + (value || DEFAULTS.transcodeProfile)); } });
-        add({ type: 'select', name: component + '_transcode_client_profile', values: { web: t('transcodeClientWeb'), ios: t('transcodeClientIos') }, default: settings().transcodeClientProfile, field: { name: t('transcodeClientProfile'), description: t('transcodeClientProfileDescription') }, onChange: function (value) { save({ transcodeClientProfile: value || DEFAULTS.transcodeClientProfile }); noty(t('transcodeClientProfile') + ': ' + (value || DEFAULTS.transcodeClientProfile)); } });
+        add({ type: 'select', name: component + '_transcode_client_profile', values: { web: t('transcodeClientWeb'), ios: t('transcodeClientIos'), apple_tv: t('transcodeClientAppleTv'), android_tv: t('transcodeClientAndroidTv'), lg_webos: t('transcodeClientLgWebos'), samsung_tizen: t('transcodeClientSamsungTizen'), chromecast: t('transcodeClientChromecast'), roku: t('transcodeClientRoku'), generic: t('transcodeClientGeneric') }, default: settings().transcodeClientProfile, field: { name: t('transcodeClientProfile'), description: t('transcodeClientProfileDescription') }, onChange: function (value) { save({ transcodeClientProfile: value || DEFAULTS.transcodeClientProfile }); noty(t('transcodeClientProfile') + ': ' + (value || DEFAULTS.transcodeClientProfile)); } });
 
         add({ type: 'title', name: component + '_title_advanced', field: { name: t('advancedTitle') } });
         add({ type: 'button', name: component + '_client_id', field: { name: t('clientId'), description: t('clientDescription') }, onChange: function () { promptText(t('clientId'), DEFAULTS.clientId, settings().clientId, function (v) { save({ clientId: v.trim() || DEFAULTS.clientId }); noty(t('savedClient')); }); } });
