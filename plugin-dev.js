@@ -159,12 +159,19 @@
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
                     "transcodeClientProfileDescription": "Экспериментально: Web обычно лучше для 4K/remux, iOS иногда совместимее, но может ограничивать качество.",
-                    "transcodeBrowserCompat": "Совместимость браузера (оригинальное качество)",
+                    "transcodeBrowserCompat": "Оригинальное качество / remux",
+                    "transcode4k40": "4K 40 Mbps",
+                    "transcode4k20": "4K 20 Mbps",
                     "transcode1080p20": "1080p 20 Mbps",
                     "transcode1080p12": "1080p 12 Mbps",
-                    "transcode720p8": "720p 8 Mbps",
+                    "transcode1080p10": "1080p 10 Mbps",
+                    "transcode1080p8": "1080p 8 Mbps",
                     "transcode720p4": "720p 4 Mbps",
-                    "transcode480p2": "480p 2 Mbps",
+                    "transcode720p3": "720p 3 Mbps",
+                    "transcode720p2": "720p 2 Mbps",
+                    "transcode480p15": "480p 1.5 Mbps",
+                    "transcode480p720": "480p 720 kbps",
+                    "transcode320p320": "320p 320 kbps",
                     "transcodeProfileDescription": "Используется только в режиме Plex transcode/Auto relay.",
                     "resumePlayback": "Продолжить просмотр",
                     "resumeFrom": "Продолжить с",
@@ -303,12 +310,19 @@
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
                     "transcodeClientProfileDescription": "Experimental: Web is usually better for 4K/remux; iOS may be more compatible but can limit quality.",
-                    "transcodeBrowserCompat": "Browser compatible (same resolution)",
+                    "transcodeBrowserCompat": "Original quality / remux",
+                    "transcode4k40": "4K 40 Mbps",
+                    "transcode4k20": "4K 20 Mbps",
                     "transcode1080p20": "1080p 20 Mbps",
                     "transcode1080p12": "1080p 12 Mbps",
-                    "transcode720p8": "720p 8 Mbps",
+                    "transcode1080p10": "1080p 10 Mbps",
+                    "transcode1080p8": "1080p 8 Mbps",
                     "transcode720p4": "720p 4 Mbps",
-                    "transcode480p2": "480p 2 Mbps",
+                    "transcode720p3": "720p 3 Mbps",
+                    "transcode720p2": "720p 2 Mbps",
+                    "transcode480p15": "480p 1.5 Mbps",
+                    "transcode480p720": "480p 720 kbps",
+                    "transcode320p320": "320p 320 kbps",
                     "transcodeProfileDescription": "Used only with Plex transcode / Auto relay playback.",
                     "resumePlayback": "Resume playback",
                     "resumeFrom": "Resume from",
@@ -1401,12 +1415,19 @@
                     "transcodeClientWeb": "Web / Chrome",
                     "transcodeClientIos": "iOS / Safari",
                     "transcodeClientProfileDescription": "Sperimentale: Web di solito è meglio per 4K/remux; iOS può essere più compatibile ma può limitare qualità.",
-                    "transcodeBrowserCompat": "Compatibilità browser (stessa risoluzione)",
+                    "transcodeBrowserCompat": "Qualità originale / remux",
+                    "transcode4k40": "4K 40 Mbps",
+                    "transcode4k20": "4K 20 Mbps",
                     "transcode1080p20": "1080p 20 Mbps",
                     "transcode1080p12": "1080p 12 Mbps",
-                    "transcode720p8": "720p 8 Mbps",
+                    "transcode1080p10": "1080p 10 Mbps",
+                    "transcode1080p8": "1080p 8 Mbps",
                     "transcode720p4": "720p 4 Mbps",
-                    "transcode480p2": "480p 2 Mbps",
+                    "transcode720p3": "720p 3 Mbps",
+                    "transcode720p2": "720p 2 Mbps",
+                    "transcode480p15": "480p 1.5 Mbps",
+                    "transcode480p720": "480p 720 kbps",
+                    "transcode320p320": "320p 320 kbps",
                     "transcodeProfileDescription": "Usato solo con transcodifica Plex / Auto relay.",
                     "resumePlayback": "Continua riproduzione",
                     "resumeFrom": "Continua da",
@@ -1547,7 +1568,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.39-beta-dev',
+            version: '0.2.40-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1765,7 +1786,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.39-beta-dev',
+            'X-Plex-Version': '0.2.40-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2201,7 +2222,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.39-beta-dev',
+            'X-Plex-Version': '0.2.40-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2540,10 +2561,19 @@
             ios_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls', videoResolution: '1080', maxVideoBitrate: '8000', videoBitrate: '8000', videoQuality: '60' },
             audio_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'mp3', protocol: 'hls' },
             browser_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
+            p4k_40: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '40000', videoBitrate: '40000', videoResolution: '4k', protocol: 'hls' },
+            p4k_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '4k', protocol: 'hls' },
             p1080_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '1080', protocol: 'hls' },
             p1080_12: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '12000', videoBitrate: '12000', videoResolution: '1080', protocol: 'hls' },
-            p720_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '720', protocol: 'hls' },
+            p1080_10: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '10000', videoBitrate: '10000', videoResolution: '1080', protocol: 'hls' },
+            p1080_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '1080', protocol: 'hls' },
             p720_4: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '4000', videoBitrate: '4000', videoResolution: '720', protocol: 'hls' },
+            p720_3: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '3000', videoBitrate: '3000', videoResolution: '720', protocol: 'hls' },
+            p720_2: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '2000', videoBitrate: '2000', videoResolution: '720', protocol: 'hls' },
+            p480_1_5: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '1500', videoBitrate: '1500', videoResolution: '480', protocol: 'hls' },
+            p480_720: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '720', videoBitrate: '720', videoResolution: '480', protocol: 'hls' },
+            p320_320: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '320', videoBitrate: '320', videoResolution: '320', protocol: 'hls' },
+            p720_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '720', protocol: 'hls' },
             p480_2: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '2000', videoBitrate: '2000', videoResolution: '480', protocol: 'hls' }
         };
         return profiles[profile] || profiles.browser_compat;
@@ -2553,7 +2583,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.39-beta-dev'
+            'X-Plex-Version': '0.2.40-beta-dev'
         };
         if (profile === 'ios') {
             return Object.assign(base, {
@@ -3802,7 +3832,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.39-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.40-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -3829,7 +3859,7 @@
 
         add({ type: 'title', name: component + '_title_options', field: { name: t('optionsTitle') } });
         add({ type: 'select', name: component + '_playback_mode', values: { direct: t('playbackModeDirect'), transcode: t('playbackModeTranscode') }, default: settings().playbackMode, field: { name: t('playbackMode'), description: t('playbackModeDescription') }, onChange: function (value) { save({ playbackMode: value || DEFAULTS.playbackMode }); noty(t('playbackMode') + ': ' + (value || DEFAULTS.playbackMode)); } });
-        add({ type: 'select', name: component + '_transcode_profile', values: { browser_compat: t('transcodeBrowserCompat'), p1080_20: t('transcode1080p20'), p1080_12: t('transcode1080p12'), p720_8: t('transcode720p8'), p720_4: t('transcode720p4'), p480_2: t('transcode480p2') }, default: settings().transcodeProfile, field: { name: t('transcodeProfile'), description: t('transcodeProfileDescription') }, onChange: function (value) { save({ transcodeProfile: value || DEFAULTS.transcodeProfile }); noty(t('transcodeProfile') + ': ' + (value || DEFAULTS.transcodeProfile)); } });
+        add({ type: 'select', name: component + '_transcode_profile', values: { browser_compat: t('transcodeBrowserCompat'), p4k_40: t('transcode4k40'), p4k_20: t('transcode4k20'), p1080_20: t('transcode1080p20'), p1080_12: t('transcode1080p12'), p1080_10: t('transcode1080p10'), p1080_8: t('transcode1080p8'), p720_4: t('transcode720p4'), p720_3: t('transcode720p3'), p720_2: t('transcode720p2'), p480_1_5: t('transcode480p15'), p480_720: t('transcode480p720'), p320_320: t('transcode320p320') }, default: settings().transcodeProfile, field: { name: t('transcodeProfile'), description: t('transcodeProfileDescription') }, onChange: function (value) { save({ transcodeProfile: value || DEFAULTS.transcodeProfile }); noty(t('transcodeProfile') + ': ' + (value || DEFAULTS.transcodeProfile)); } });
         add({ type: 'select', name: component + '_transcode_client_profile', values: { web: t('transcodeClientWeb'), ios: t('transcodeClientIos') }, default: settings().transcodeClientProfile, field: { name: t('transcodeClientProfile'), description: t('transcodeClientProfileDescription') }, onChange: function (value) { save({ transcodeClientProfile: value || DEFAULTS.transcodeClientProfile }); noty(t('transcodeClientProfile') + ': ' + (value || DEFAULTS.transcodeClientProfile)); } });
 
         add({ type: 'title', name: component + '_title_advanced', field: { name: t('advancedTitle') } });
