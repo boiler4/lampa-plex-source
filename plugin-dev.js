@@ -1476,15 +1476,27 @@
         return !!fallback;
     }
 
+    function redactDebugValue(key, value) {
+        var k = String(key || '').toLowerCase();
+        if (k === 'plextoken' || k === 'token' || k === 'x-plex-token' || k.indexOf('auth') >= 0) return value ? '***' : value;
+        if (typeof value === 'string') {
+            return value.replace(/([?&]X-Plex-Token=)[^&\s]+/ig, '$1***')
+                .replace(/(X-Plex-Token[=:]\s*)[^&\s,}]+/ig, '$1***');
+        }
+        return value;
+    }
+
+    function debugString(item) {
+        if (typeof item === 'string') return redactDebugValue('', item);
+        try { return JSON.stringify(item, redactDebugValue, 2); }
+        catch (e) { return String(item); }
+    }
+
     function log() {
         if (!DEBUG_ALWAYS && !settings().debug) return;
         var args = [].slice.call(arguments);
         try {
-            DEBUG_BUFFER.push({ time: new Date().toLocaleTimeString(), args: args.map(function (item) {
-                if (typeof item === 'string') return item;
-                try { return JSON.stringify(item, null, 2); }
-                catch (e) { return String(item); }
-            }) });
+            DEBUG_BUFFER.push({ time: new Date().toLocaleTimeString(), args: args.map(debugString) });
             if (DEBUG_BUFFER.length > 80) DEBUG_BUFFER.shift();
             window.PlexSourceDebug = DEBUG_BUFFER;
         }
@@ -1517,7 +1529,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.10-beta-dev',
+            version: '0.2.11-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1735,7 +1747,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.10-beta-dev',
+            'X-Plex-Version': '0.2.11-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2171,7 +2183,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.10-beta-dev',
+            'X-Plex-Version': '0.2.11-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2469,7 +2481,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.10-beta-dev',
+            'X-Plex-Version': '0.2.11-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
