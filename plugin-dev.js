@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.58-beta-dev',
+            version: '0.2.59-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.58-beta-dev',
+            'X-Plex-Version': '0.2.59-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.58-beta-dev',
+            'X-Plex-Version': '0.2.59-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2681,7 +2681,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.58-beta-dev'
+            'X-Plex-Version': '0.2.59-beta-dev'
         };
         var profiles = {
             ios: {
@@ -3267,6 +3267,23 @@
         return (stream && (stream.displayTitle || stream.title || stream.language || stream.languageCode)) || fallback || '';
     }
 
+    function hlsTrackMemoryKey(item) {
+        return 'plex_source_hls_tracks_' + [item && (item.plexServerKey || item.plexServerName || item.plexBase || 'plex'), item && item.ratingKey, item && (item.partId || item.mediaId || item.partKey || '')].join('_').replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
+    function loadHlsTrackMemory(item) {
+        try {
+            var raw = Lampa.Storage.get(hlsTrackMemoryKey(item), '');
+            return raw ? JSON.parse(raw) || {} : {};
+        }
+        catch (e) { return {}; }
+    }
+
+    function saveHlsTrackMemory(item, data) {
+        try { Lampa.Storage.set(hlsTrackMemoryKey(item), JSON.stringify(data || {})); }
+        catch (e) {}
+    }
+
     function hlsPreplayOptions(item) {
         var audio = (item && item.audioStreams || []).filter(function (stream) { return stream.id; });
         var subs = (item && item.subtitleStreams || []).filter(function (stream) { return stream.id; });
@@ -3294,8 +3311,11 @@
             playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true }));
             return;
         }
-        var selectedAudio = baseOptions.audioStreamID || (audioChoices.find(function (s) { return s.selected === '1'; }) || audioChoices[0] || {}).id || '';
-        var selectedSubtitle = baseOptions.subtitleStreamID || '';
+        var rememberedTracks = loadHlsTrackMemory(item);
+        var rememberedAudio = rememberedTracks.audioStreamID && audioChoices.some(function (s) { return s.id === rememberedTracks.audioStreamID; }) ? rememberedTracks.audioStreamID : '';
+        var rememberedSubtitle = rememberedTracks.subtitleStreamID && subChoices.some(function (s) { return s.id === rememberedTracks.subtitleStreamID; }) ? rememberedTracks.subtitleStreamID : '';
+        var selectedAudio = baseOptions.audioStreamID || rememberedAudio || (audioChoices.find(function (s) { return s.selected === '1'; }) || audioChoices[0] || {}).id || '';
+        var selectedSubtitle = typeof baseOptions.subtitleStreamID !== 'undefined' ? baseOptions.subtitleStreamID : rememberedSubtitle;
         var rows = [];
         var selectedMeta = (selectedAudio ? 'Audio: ' + streamLabel(audioChoices.find(function (s) { return s.id === selectedAudio; }), selectedAudio) : '') + (selectedSubtitle ? ' · Sub: ' + streamLabel(subChoices.find(function (s) { return s.id === selectedSubtitle; }), selectedSubtitle) : '');
         var resumeOffset = parseInt(baseOptions.startOffsetMs || item.viewOffset || '0', 10) || 0;
@@ -3310,6 +3330,7 @@
         });
         function runPreplayRow(row) {
             if (row.action === 'play') {
+                saveHlsTrackMemory(item, { audioStreamID: selectedAudio || '', subtitleStreamID: selectedSubtitle || '' });
                 playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true, startOffsetMs: row.startOffsetMs || 0, audioStreamID: selectedAudio || undefined, subtitleStreamID: selectedSubtitle || undefined }));
             }
             else {
@@ -4144,7 +4165,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.58-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.59-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4262,7 +4283,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.58-beta-dev' });
+        log('ready', { version: '0.2.59-beta-dev' });
     }
 
     (function wait() {
