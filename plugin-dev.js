@@ -244,6 +244,9 @@
                     "debugEmpty": "No logs yet. Open a movie/show card and try again.",
                     "copyDebugLog": "Copy log",
                     "debugLogCopied": "Log copied",
+                    "shareDebugLog": "Share log",
+                    "openDebugLogText": "Open log as text",
+                    "debugLogOpened": "Log opened in a new tab",
                     "openGithubIssue": "Open GitHub issue",
                     "showBugReportQr": "Bug report QR",
                     "bugReportQrTitle": "Scan QR to open GitHub issue",
@@ -1333,6 +1336,9 @@
                     "debugEmpty": "Nessun log ancora. Apri una scheda film/serie e riprova.",
                     "copyDebugLog": "Copia log",
                     "debugLogCopied": "Log copiato",
+                    "shareDebugLog": "Condividi log",
+                    "openDebugLogText": "Apri log come testo",
+                    "debugLogOpened": "Log aperto in una nuova scheda",
                     "openGithubIssue": "Apri issue GitHub",
                     "showBugReportQr": "QR bug report",
                     "bugReportQrTitle": "Scansiona il QR per aprire una issue GitHub",
@@ -1511,7 +1517,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.9-beta-dev',
+            version: '0.2.10-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1605,9 +1611,43 @@
         } catch (e) { window.prompt(t('copyDebugLog'), text); }
     }
 
+    function shareDebugLog() {
+        var text = debugText();
+        var title = t('debugTitle');
+        try {
+            if (navigator.share) {
+                navigator.share({ title: title, text: text }).catch(function (err) { log('debug share failed', err && (err.message || err)); });
+                return;
+            }
+        }
+        catch (e) { log('debug share unavailable', e && (e.message || e)); }
+        openDebugLogText();
+    }
+
+    function openDebugLogText() {
+        var text = debugText();
+        try {
+            var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            var url = URL.createObjectURL(blob);
+            var opened = window.open(url, '_blank');
+            if (opened) {
+                noty(t('debugLogOpened'));
+                setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 60000);
+                return;
+            }
+        }
+        catch (e) { log('debug open text failed', e && (e.message || e)); }
+        try {
+            window.location.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+        }
+        catch (e2) { window.prompt(t('copyDebugLog'), text); }
+    }
+
     function showDebugActions(closeDebug) {
         var items = [
             { title: t('copyDebugLog'), action: 'copy' },
+            { title: t('shareDebugLog'), action: 'share' },
+            { title: t('openDebugLogText'), action: 'openText' },
             { title: t('showBugReportQr'), action: 'qr' },
             { title: t('openGithubIssue'), action: 'issue' },
             { title: t('sendBugReport'), action: 'send' },
@@ -1615,6 +1655,8 @@
         ];
         function run(item) {
             if (item.action === 'copy') copyDebugLog();
+            else if (item.action === 'share') shareDebugLog();
+            else if (item.action === 'openText') openDebugLogText();
             else if (item.action === 'qr') showBugReportQr();
             else if (item.action === 'issue') { try { window.open(bugReportIssueUrl(), '_blank'); } catch (e) {} }
             else if (item.action === 'send') askAndSendBugReport();
@@ -1660,6 +1702,20 @@
         guide.className = 'plex-source-subtitle';
         guide.textContent = t('bugReportGuide') + ' ' + t('debugPressOk');
         box.appendChild(guide);
+        var actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 18px;';
+        [
+            { title: t('copyDebugLog'), run: copyDebugLog },
+            { title: t('shareDebugLog'), run: shareDebugLog },
+            { title: t('openDebugLogText'), run: openDebugLogText }
+        ].forEach(function (action) {
+            var btn = document.createElement('button');
+            btn.textContent = action.title;
+            btn.style.cssText = 'border:0;border-radius:10px;padding:10px 12px;background:#2b6cff;color:#fff;font-weight:600;';
+            btn.onclick = function (event) { event.preventDefault(); event.stopPropagation(); action.run(); };
+            actions.appendChild(btn);
+        });
+        box.appendChild(actions);
         var body = document.createElement('pre');
         body.textContent = debugText();
         body.style.cssText = 'font-family:monospace;font-size:12px;line-height:1.45;white-space:pre-wrap;margin:0;';
@@ -1679,7 +1735,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.9-beta-dev',
+            'X-Plex-Version': '0.2.10-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2115,7 +2171,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.9-beta-dev',
+            'X-Plex-Version': '0.2.10-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2413,7 +2469,7 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.9-beta-dev',
+            'X-Plex-Version': '0.2.10-beta-dev',
             'X-Plex-Platform': 'Web'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
