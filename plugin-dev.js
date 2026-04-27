@@ -1533,7 +1533,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.34-beta-dev',
+            version: '0.2.35-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1751,7 +1751,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.34-beta-dev',
+            'X-Plex-Version': '0.2.35-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2187,7 +2187,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.34-beta-dev',
+            'X-Plex-Version': '0.2.35-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2523,9 +2523,9 @@
 
     function transcodeProfileParams(profile) {
         var profiles = {
-            ios_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls', maxVideoBitrate: '4000', videoBitrate: '4000', maxVideoWidth: '1280', maxVideoHeight: '720', mediaBufferSize: '102400', location: 'lan' },
+            ios_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls', videoResolution: '1080', maxVideoBitrate: '8000', videoBitrate: '8000', videoQuality: '60' },
             audio_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'mp3', protocol: 'hls' },
-            browser_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
+            browser_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls', videoResolution: '1080', maxVideoBitrate: '8000', videoBitrate: '8000', videoQuality: '60' },
             p1080_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '1080', protocol: 'hls' },
             p1080_12: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '12000', videoBitrate: '12000', videoResolution: '1080', protocol: 'hls' },
             p720_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '720', protocol: 'hls' },
@@ -2558,19 +2558,17 @@
             session: sessionParts.join('-').replace(/[^a-zA-Z0-9_-]/g, ''),
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Product': 'Plex Web',
-            'X-Plex-Version': '0.2.34-beta-dev',
-            'X-Plex-Platform': 'Chrome',
-            'X-Plex-Platform-Version': '120',
-            'X-Plex-Model': 'standalone',
-            'X-Plex-Device': 'Chrome',
-            'X-Plex-Device-Name': 'Lampa Plex Source',
-            'X-Plex-Device-Screen-Resolution': '1920x1080,1920x1080'
+            'X-Plex-Product': 'Safari',
+            'X-Plex-Version': '0.2.35-beta-dev',
+            'X-Plex-Platform': 'iOS',
+            'X-Plex-Device': 'iPhone',
+            'X-Plex-Device-Name': 'Lampa iOS HLS',
+            'X-Plex-Client-Profile-Name': 'iOS'
         }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
         if (options.audioStreamID) params.set('audioStreamID', options.audioStreamID);
         if (options.subtitleStreamID) params.set('subtitleStreamID', options.subtitleStreamID);
-        log('Plex HLS transcode params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', maxVideoWidth: params.get('maxVideoWidth') || '', maxVideoHeight: params.get('maxVideoHeight') || '', platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), audioStreamID: params.get('audioStreamID') || '' });
+        log('Plex HLS transcode params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', videoResolution: params.get('videoResolution') || '', platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), audioStreamID: params.get('audioStreamID') || '' });
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
     }
 
