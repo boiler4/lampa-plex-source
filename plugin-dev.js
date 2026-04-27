@@ -1594,7 +1594,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.52-beta-dev',
+            version: '0.2.53-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1812,7 +1812,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.52-beta-dev',
+            'X-Plex-Version': '0.2.53-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2248,7 +2248,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.52-beta-dev',
+            'X-Plex-Version': '0.2.53-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2681,7 +2681,7 @@
         var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
         var base = {
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
-            'X-Plex-Version': '0.2.52-beta-dev'
+            'X-Plex-Version': '0.2.53-beta-dev'
         };
         var profiles = {
             ios: {
@@ -3264,8 +3264,73 @@
         return copy;
     }
 
+    function streamLabel(stream, fallback) {
+        return (stream && (stream.displayTitle || stream.title || stream.language || stream.languageCode)) || fallback || '';
+    }
+
+    function hlsPreplayOptions(item) {
+        var audio = (item && item.audioStreams || []).filter(function (stream) { return stream.id; });
+        var subs = (item && item.subtitleStreams || []).filter(function (stream) { return stream.id; });
+        return { audio: audio, subs: subs };
+    }
+
+    function maybeChooseHlsTracksBeforePlay(card, item, baseOptions) {
+        baseOptions = Object.assign({}, baseOptions || {});
+        if (baseOptions.hlsTracksChosen || settings().playbackMode !== 'transcode' || shouldAvoidPlexTranscode(item)) {
+            playItem(card, item, baseOptions);
+            return;
+        }
+        if (!baseOptions.streamsEnriched) {
+            enrichItemStreams(item).then(function (enriched) {
+                maybeChooseHlsTracksBeforePlay(card, enriched, Object.assign({}, baseOptions, { streamsEnriched: true }));
+            }).catch(function () {
+                playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true }));
+            });
+            return;
+        }
+        var available = hlsPreplayOptions(item);
+        var audioChoices = available.audio;
+        var subChoices = available.subs;
+        if (audioChoices.length < 2 && !subChoices.length) {
+            playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true }));
+            return;
+        }
+        var selectedAudio = baseOptions.audioStreamID || (audioChoices.find(function (s) { return s.selected === '1'; }) || audioChoices[0] || {}).id || '';
+        var selectedSubtitle = baseOptions.subtitleStreamID || '';
+        var rows = [];
+        rows.push({ title: '▶ ' + (t('play') || 'Play'), meta: (selectedAudio ? 'Audio: ' + streamLabel(audioChoices.find(function (s) { return s.id === selectedAudio; }), selectedAudio) : '') + (selectedSubtitle ? ' · Sub: ' + streamLabel(subChoices.find(function (s) { return s.id === selectedSubtitle; }), selectedSubtitle) : ''), action: 'play' });
+        audioChoices.forEach(function (stream, idx) {
+            rows.push({ title: (stream.id === selectedAudio ? '✓ ' : '') + 'Audio: ' + streamLabel(stream, 'Audio ' + (idx + 1)), meta: stream.codec || '', action: 'audio', id: stream.id });
+        });
+        rows.push({ title: (!selectedSubtitle ? '✓ ' : '') + 'Subtitles: Off', action: 'subtitle', id: '' });
+        subChoices.forEach(function (stream, idx) {
+            rows.push({ title: (stream.id === selectedSubtitle ? '✓ ' : '') + 'Subtitles: ' + streamLabel(stream, 'Subtitle ' + (idx + 1)), meta: stream.codec || '', action: 'subtitle', id: stream.id });
+        });
+        showList('Plex HLS tracks', 'Choose before playback. In-player switching is unreliable in Lampa.', rows.map(function (row) {
+            return {
+                title: row.title,
+                meta: row.meta || '',
+                onClick: function () {
+                    closeOverlay(false);
+                    if (row.action === 'play') {
+                        playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true, audioStreamID: selectedAudio || undefined, subtitleStreamID: selectedSubtitle || undefined }));
+                    }
+                    else {
+                        var next = Object.assign({}, baseOptions, { hlsTracksChosen: false, streamsEnriched: true });
+                        if (row.action === 'audio') next.audioStreamID = row.id;
+                        if (row.action === 'subtitle') next.subtitleStreamID = row.id || undefined;
+                        maybeChooseHlsTracksBeforePlay(card, item, next);
+                    }
+                }
+            };
+        }), { back: function () { closeOverlay(false); restoreFocusAfterOverlay(); } });
+    }
+
     function playItemWithChoice(card, item) {
-        if (!hasResumeOffset(item)) return playItem(card, item, { startOffsetMs: 0 });
+        function startWithOptions(opts) {
+            maybeChooseHlsTracksBeforePlay(card, item, opts || { startOffsetMs: 0 });
+        }
+        if (!hasResumeOffset(item)) return startWithOptions({ startOffsetMs: 0 });
         var offset = parseInt(item.viewOffset || '0', 10) || 0;
         var state = watchedInfo(item);
         var title = item.title || item.grandparentTitle || localTitleFrom(card) || 'Plex';
@@ -3273,12 +3338,12 @@
             { title: t('resumeFrom') + ' ' + formatResumeTime(offset), subtitle: state && state.label ? state.label : '', offset: offset },
             { title: t('playFromStart'), offset: 0 }
         ], function (choice) {
-            playItem(card, item, { startOffsetMs: choice.offset || 0 });
+            startWithOptions({ startOffsetMs: choice.offset || 0 });
         }, function () {
             restoreFocusAfterOverlay();
         })) return;
         var useResume = window.confirm ? window.confirm(t('resumeFrom') + ' ' + formatResumeTime(offset) + '?') : true;
-        playItem(card, item, { startOffsetMs: useResume ? offset : 0 });
+        startWithOptions({ startOffsetMs: useResume ? offset : 0 });
     }
 
     function playItem(card, item, options) {
@@ -4064,7 +4129,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
-        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.52-beta-dev' } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.53-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -4182,7 +4247,7 @@
         installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready', { version: '0.2.52-beta-dev' });
+        log('ready', { version: '0.2.53-beta-dev' });
     }
 
     (function wait() {
