@@ -26,7 +26,9 @@
         showOnlyExactYear: false,
         debug: false,
         episodeActionMode: 'play_long_actions',
-        syncProgressToPlex: false
+        syncProgressToPlex: false,
+        playbackMode: 'auto',
+        transcodeProfile: 'browser_compat'
     };
 
     var I18N = {
@@ -144,7 +146,21 @@
                     "markedUnwatched": "Отмечено непросмотренным",
                     "markError": "Ошибка обновления Plex",
                     "syncProgressToPlex": "Синхронизация прогресса с Plex",
-                    "syncProgressToPlexDescription": "Экспериментально: отправлять прогресс встроенного плеера Lampa в Plex. Не работает с внешними плеерами."
+                    "syncProgressToPlexDescription": "Экспериментально: отправлять прогресс встроенного плеера Lampa в Plex. Не работает с внешними плеерами.",
+                    "optionsTitle": "Опции",
+                    "playbackMode": "Режим воспроизведения",
+                    "playbackModeAuto": "Авто",
+                    "playbackModeDirect": "Прямой файл",
+                    "playbackModeTranscode": "Plex transcode HLS",
+                    "playbackModeDescription": "Авто = transcode для relay, прямой файл для direct. Transcode помогает встроенному плееру Lampa с кодеками.",
+                    "transcodeProfile": "Профиль transcode",
+                    "transcodeBrowserCompat": "Совместимость браузера (та же резолюция)",
+                    "transcode1080p20": "1080p 20 Mbps",
+                    "transcode1080p12": "1080p 12 Mbps",
+                    "transcode720p8": "720p 8 Mbps",
+                    "transcode720p4": "720p 4 Mbps",
+                    "transcode480p2": "480p 2 Mbps",
+                    "transcodeProfileDescription": "Используется только в режиме Plex transcode/Auto relay."
             },
             "en": {
                     "component": "Plex Source",
@@ -262,7 +278,21 @@
                     "markedUnwatched": "Marked unwatched",
                     "markError": "Plex update failed",
                     "syncProgressToPlex": "Sync progress to Plex",
-                    "syncProgressToPlexDescription": "Experimental: send Lampa integrated-player progress to Plex. Does not work with external players."
+                    "syncProgressToPlexDescription": "Experimental: send Lampa integrated-player progress to Plex. Does not work with external players.",
+                    "optionsTitle": "Options",
+                    "playbackMode": "Playback mode",
+                    "playbackModeAuto": "Auto",
+                    "playbackModeDirect": "Direct file",
+                    "playbackModeTranscode": "Plex HLS transcode",
+                    "playbackModeDescription": "Auto = transcode for relay, direct file for direct connections. Transcode helps Lampa integrated player with codecs.",
+                    "transcodeProfile": "Transcode profile",
+                    "transcodeBrowserCompat": "Browser compatible (same resolution)",
+                    "transcode1080p20": "1080p 20 Mbps",
+                    "transcode1080p12": "1080p 12 Mbps",
+                    "transcode720p8": "720p 8 Mbps",
+                    "transcode720p4": "720p 4 Mbps",
+                    "transcode480p2": "480p 2 Mbps",
+                    "transcodeProfileDescription": "Used only with Plex transcode / Auto relay playback."
             },
             "uk": {
                     "component": "Plex Source",
@@ -1334,7 +1364,21 @@
                     "markedUnwatched": "Segnato non visto",
                     "markError": "Aggiornamento Plex fallito",
                     "syncProgressToPlex": "Sincronizza progresso su Plex",
-                    "syncProgressToPlexDescription": "Sperimentale: invia a Plex il progresso del player integrato Lampa. Non funziona con player esterni."
+                    "syncProgressToPlexDescription": "Sperimentale: invia a Plex il progresso del player integrato Lampa. Non funziona con player esterni.",
+                    "optionsTitle": "Opzioni",
+                    "playbackMode": "Modalità riproduzione",
+                    "playbackModeAuto": "Auto",
+                    "playbackModeDirect": "File diretto",
+                    "playbackModeTranscode": "Transcodifica Plex HLS",
+                    "playbackModeDescription": "Auto = transcodifica per relay, file diretto per connessioni direct. La transcodifica aiuta il player integrato Lampa con i codec.",
+                    "transcodeProfile": "Profilo transcodifica",
+                    "transcodeBrowserCompat": "Compatibilità browser (stessa risoluzione)",
+                    "transcode1080p20": "1080p 20 Mbps",
+                    "transcode1080p12": "1080p 12 Mbps",
+                    "transcode720p8": "720p 8 Mbps",
+                    "transcode720p4": "720p 4 Mbps",
+                    "transcode480p2": "480p 2 Mbps",
+                    "transcodeProfileDescription": "Usato solo con transcodifica Plex / Auto relay."
             }
     };
 
@@ -1378,7 +1422,9 @@
             showOnlyExactYear: boolValue('showOnlyExactYear', DEFAULTS.showOnlyExactYear),
             debug: boolValue('debug', DEFAULTS.debug),
             episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode),
-            syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex)
+            syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex),
+            playbackMode: String(get('playbackMode', DEFAULTS.playbackMode) || DEFAULTS.playbackMode),
+            transcodeProfile: String(get('transcodeProfile', DEFAULTS.transcodeProfile) || DEFAULTS.transcodeProfile)
         };
     }
 
@@ -1456,7 +1502,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.4-beta-dev',
+            version: '0.2.5-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1624,7 +1670,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.4-beta-dev',
+            'X-Plex-Version': '0.2.5-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2060,7 +2106,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.4-beta-dev',
+            'X-Plex-Version': '0.2.5-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2304,28 +2350,44 @@
             });
     }
 
+    function transcodeProfileParams(profile) {
+        var profiles = {
+            browser_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', protocol: 'hls' },
+            p1080_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '1080', protocol: 'hls' },
+            p1080_12: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '12000', videoBitrate: '12000', videoResolution: '1080', protocol: 'hls' },
+            p720_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '720', protocol: 'hls' },
+            p720_4: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '4000', videoBitrate: '4000', videoResolution: '720', protocol: 'hls' },
+            p480_2: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '2000', videoBitrate: '2000', videoResolution: '480', protocol: 'hls' }
+        };
+        return profiles[profile] || profiles.browser_compat;
+    }
+
+    function transcodeUrl(item, target) {
+        if (!item || !item.ratingKey) return '';
+        var cfg = settings();
+        var params = new URLSearchParams(Object.assign({
+            path: '/library/metadata/' + item.ratingKey,
+            mediaIndex: '0',
+            partIndex: '0',
+            fastSeek: '1',
+            copyts: '1',
+            subtitles: 'auto',
+            'X-Plex-Token': target.plexToken,
+            'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
+            'X-Plex-Product': 'Plex Source for Lampa',
+            'X-Plex-Version': '0.2.5-beta-dev',
+            'X-Plex-Platform': 'Web'
+        }, transcodeProfileParams(cfg.transcodeProfile)));
+        return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
+    }
+
     function streamUrl(item) {
         if (!item || !item.partKey) return '';
         var s = targetSettings(itemTarget(item));
-        if (s.plexConnectionRelay && item.ratingKey) {
-            var params = new URLSearchParams({
-                path: '/library/metadata/' + item.ratingKey,
-                mediaIndex: '0',
-                partIndex: '0',
-                protocol: 'hls',
-                directPlay: '0',
-                directStream: '0',
-                fastSeek: '1',
-                copyts: '1',
-                subtitles: 'burn',
-                'X-Plex-Token': s.plexToken,
-                'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
-                'X-Plex-Product': 'Plex Source for Lampa',
-                'X-Plex-Version': '0.2.4-beta-dev',
-                'X-Plex-Platform': 'Web'
-            });
-            return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
-        }
+        var cfg = settings();
+        var mode = cfg.playbackMode || DEFAULTS.playbackMode;
+        var shouldTranscode = item.ratingKey && (mode === 'transcode' || (mode === 'auto' && s.plexConnectionRelay));
+        if (shouldTranscode) return transcodeUrl(item, s);
         return s.plexBase + item.partKey + (item.partKey.indexOf('?') >= 0 ? '&' : '?') + 'download=0&X-Plex-Token=' + encodeURIComponent(s.plexToken);
     }
 
@@ -2513,7 +2575,7 @@
             plex: { ratingKey: item.ratingKey, sectionTitle: item.sectionTitle }
         };
 
-        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex });
+        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex, playbackMode: settings().playbackMode, transcodeProfile: settings().transcodeProfile });
         probePlaybackUrl(data.url);
         startPlexProgressSync(item);
         Lampa.Player.play(data);
@@ -3184,6 +3246,10 @@
         add({ type: 'trigger', name: component + '_exact_year', default: settings().showOnlyExactYear, field: { name: t('exactYear'), description: t('exactYearDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.showOnlyExactYear); save({ showOnlyExactYear: next }); noty(t('exactYear') + ': ' + (next ? t('on') : t('off'))); } });
         add({ type: 'select', name: component + '_episode_action_mode', values: { play_long_actions: t('modePlayLong'), actions: t('modeActions') }, default: settings().episodeActionMode, field: { name: t('episodeActionMode'), description: t('episodeActionModeDescription') }, onChange: function (value) { save({ episodeActionMode: value || DEFAULTS.episodeActionMode }); } });
         add({ type: 'trigger', name: component + '_sync_progress_to_plex', default: settings().syncProgressToPlex, field: { name: t('syncProgressToPlex'), description: t('syncProgressToPlexDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.syncProgressToPlex); save({ syncProgressToPlex: next }); noty(t('syncProgressToPlex') + ': ' + (next ? t('on') : t('off'))); } });
+
+        add({ type: 'title', name: component + '_title_options', field: { name: t('optionsTitle') } });
+        add({ type: 'select', name: component + '_playback_mode', values: { auto: t('playbackModeAuto'), direct: t('playbackModeDirect'), transcode: t('playbackModeTranscode') }, default: settings().playbackMode, field: { name: t('playbackMode'), description: t('playbackModeDescription') }, onChange: function (value) { save({ playbackMode: value || DEFAULTS.playbackMode }); } });
+        add({ type: 'select', name: component + '_transcode_profile', values: { browser_compat: t('transcodeBrowserCompat'), p1080_20: t('transcode1080p20'), p1080_12: t('transcode1080p12'), p720_8: t('transcode720p8'), p720_4: t('transcode720p4'), p480_2: t('transcode480p2') }, default: settings().transcodeProfile, field: { name: t('transcodeProfile'), description: t('transcodeProfileDescription') }, onChange: function (value) { save({ transcodeProfile: value || DEFAULTS.transcodeProfile }); } });
 
         add({ type: 'title', name: component + '_title_advanced', field: { name: t('advancedTitle') } });
         add({ type: 'button', name: component + '_client_id', field: { name: t('clientId'), description: t('clientDescription') }, onChange: function () { promptText(t('clientId'), DEFAULTS.clientId, settings().clientId, function (v) { save({ clientId: v.trim() || DEFAULTS.clientId }); noty(t('savedClient')); }); } });
