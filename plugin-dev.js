@@ -1511,7 +1511,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.7-beta-dev',
+            version: '0.2.8-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1679,7 +1679,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.7-beta-dev',
+            'X-Plex-Version': '0.2.8-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2115,7 +2115,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.7-beta-dev',
+            'X-Plex-Version': '0.2.8-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2375,6 +2375,7 @@
         if (!item || !item.ratingKey) return '';
         options = options || {};
         var cfg = settings();
+        var profile = (options && options.transcodeProfile) || cfg.transcodeProfile;
         var params = new URLSearchParams(Object.assign({
             path: '/library/metadata/' + item.ratingKey,
             mediaIndex: '0',
@@ -2385,11 +2386,33 @@
             'X-Plex-Token': target.plexToken,
             'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.7-beta-dev',
+            'X-Plex-Version': '0.2.8-beta-dev',
             'X-Plex-Platform': 'Web'
-        }, transcodeProfileParams(cfg.transcodeProfile)));
+        }, transcodeProfileParams(profile)));
         if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.round(options.startOffsetMs));
         return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
+    }
+
+    function plexQualityMap(item, target, options) {
+        options = options || {};
+        if (!item || !item.ratingKey) return null;
+        var cfg = settings();
+        var mode = cfg.playbackMode || DEFAULTS.playbackMode;
+        var shouldExpose = mode === 'transcode' || (mode === 'auto' && target && target.plexConnectionRelay);
+        if (!shouldExpose) return qualityMap(item);
+        var profiles = [
+            ['Browser', 'browser_compat'],
+            ['1080p 20 Mbps', 'p1080_20'],
+            ['1080p 12 Mbps', 'p1080_12'],
+            ['720p 8 Mbps', 'p720_8'],
+            ['720p 4 Mbps', 'p720_4'],
+            ['480p 2 Mbps', 'p480_2']
+        ];
+        var out = {};
+        profiles.forEach(function (entry) {
+            out[entry[0]] = transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: entry[1] }));
+        });
+        return out;
     }
 
     function streamUrl(item, options) {
@@ -2624,10 +2647,11 @@
             ? ((item.grandparentTitle || localTitleFrom(card) || t('showFallback')) + ' — S' + (item.parentIndex || '?') + 'E' + (item.index || '?') + ' — ' + (item.title || t('episodeFallback')))
             : ((localTitleFrom(card) || item.title || 'Plex') + ' / Plex — ' + (item.sectionTitle || 'Library'));
 
+        var target = targetSettings(itemTarget(item));
         var data = {
             url: url,
             title: title.replace(/<[^>]*>?/gm, ''),
-            quality: qualityMap(item),
+            quality: plexQualityMap(item, target, options),
             timeline: timeline,
             card: card,
             thumbnail: thumbUrl(item.thumb, item) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
