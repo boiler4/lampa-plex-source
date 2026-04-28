@@ -10,6 +10,8 @@
     var OVERLAY_COLUMNS = 1;
     var SELECT_SERVER_COOLDOWN_UNTIL = 0;
     var TARGET_CACHE = { key: '', expiresAt: 0, targets: [] };
+    var ACTIVE_PROGRESS_SYNC = null;
+    var PROGRESS_SYNC_INSTALLED = false;
 
     var DEFAULTS = {
         enabled: true,
@@ -23,7 +25,11 @@
         matchLimit: 5,
         showOnlyExactYear: false,
         debug: false,
-        episodeActionMode: 'play_long_actions'
+        episodeActionMode: 'play_long_actions',
+        syncProgressToPlex: false,
+        playbackMode: 'direct',
+        transcodeProfile: 'browser_compat',
+        transcodeClientProfile: 'web'
     };
 
     var I18N = {
@@ -139,7 +145,50 @@
                     "actionMarkUnwatched": "Отметить непросмотренным в Plex",
                     "markedWatched": "Отмечено просмотренным",
                     "markedUnwatched": "Отмечено непросмотренным",
-                    "markError": "Ошибка обновления Plex"
+                    "markError": "Ошибка обновления Plex",
+                    "syncProgressToPlex": "Синхронизация прогресса с Plex",
+                    "syncProgressToPlexDescription": "Отправлять прогресс встроенного плеера Lampa в Plex. Не работает с внешними плеерами.",
+                    "optionsTitle": "Опции",
+                    "playbackMode": "Режим воспроизведения",
+                    "playbackModeAuto": "Авто",
+                    "playbackModeDirect": "Прямой файл",
+                    "playbackModeTranscode": "Plex transcode HLS",
+                    "playbackModeDescription": "Авто = transcode для relay, прямой файл для direct. Transcode помогает встроенному плееру Lampa с кодеками.",
+                    "transcodeProfile": "Профиль transcode",
+                    "transcodeClientProfile": "Тип клиентского профиля",
+                    "transcodeOptionsTitle": "Transcode",
+                    "transcodeClientWeb": "Web / Chrome",
+                    "transcodeClientIos": "iOS / Safari",
+                    "transcodeClientAppleTv": "Apple TV",
+                    "transcodeClientAndroidTv": "Android TV",
+                    "transcodeClientLgWebos": "LG webOS TV",
+                    "transcodeClientSamsungTizen": "Samsung Tizen TV",
+                    "transcodeClientChromecast": "Chromecast",
+                    "transcodeClientRoku": "Roku",
+                    "transcodeClientGeneric": "Generic TV",
+                    "transcodeClientProfileDescription": "Профиль влияет на кодеки, remux, 4K/HDR и дорожки. Проверяйте в логах Plex: using profile ...",
+                    "transcodeBrowserCompat": "Оригинальное качество / remux",
+                    "transcode4k40": "4K 40 Mbps",
+                    "transcode4k20": "4K 20 Mbps",
+                    "transcode1080p20": "1080p 20 Mbps",
+                    "transcode1080p12": "1080p 12 Mbps",
+                    "transcode1080p10": "1080p 10 Mbps",
+                    "transcode1080p8": "1080p 8 Mbps",
+                    "transcode720p4": "720p 4 Mbps",
+                    "transcode720p3": "720p 3 Mbps",
+                    "transcode720p2": "720p 2 Mbps",
+                    "transcode480p15": "480p 1.5 Mbps",
+                    "transcode480p720": "480p 720 kbps",
+                    "transcode320p320": "320p 320 kbps",
+                    "transcodeProfileDescription": "Используется только в режиме Plex transcode/Auto relay.",
+                    "resumePlayback": "Продолжить просмотр",
+                    "resumeFrom": "Продолжить с",
+                    "playFromStart": "С начала",
+                    "hlsTracksTitle": "Дорожки Plex HLS",
+                    "hlsTracksHelp": "Выберите дорожки перед воспроизведением. Back/Esc закрывает меню.",
+                    "hlsAudioPrefix": "Аудио",
+                    "hlsSubtitlesPrefix": "Субтитры",
+                    "hlsSubtitlesOff": "Субтитры: выкл."
             },
             "en": {
                     "component": "Plex Source",
@@ -220,6 +269,11 @@
                     "debugEmpty": "No logs yet. Open a movie/show card and try again.",
                     "copyDebugLog": "Copy log",
                     "debugLogCopied": "Log copied",
+                    "shareDebugLog": "Share log",
+                    "openDebugLogText": "Open log as text",
+                    "debugLogOpened": "Log opened in a new tab",
+                    "dolbyVisionDirectFallback": "Dolby Vision Profile 5: Plex transcode is disabled, using Direct Play.",
+                    "unsafeTranscodeDirectFallback": "Plex HLS transcode is unstable for this item, using Direct Play.",
                     "openGithubIssue": "Open GitHub issue",
                     "showBugReportQr": "Bug report QR",
                     "bugReportQrTitle": "Scan QR to open GitHub issue",
@@ -255,7 +309,50 @@
                     "actionMarkUnwatched": "Mark unwatched in Plex",
                     "markedWatched": "Marked watched",
                     "markedUnwatched": "Marked unwatched",
-                    "markError": "Plex update failed"
+                    "markError": "Plex update failed",
+                    "syncProgressToPlex": "Sync progress to Plex",
+                    "syncProgressToPlexDescription": "Send Lampa integrated-player progress to Plex. Does not work with external players.",
+                    "optionsTitle": "Options",
+                    "playbackMode": "Playback mode",
+                    "playbackModeAuto": "Auto",
+                    "playbackModeDirect": "Direct file",
+                    "playbackModeTranscode": "Plex HLS transcode",
+                    "playbackModeDescription": "Auto = transcode for relay, direct file for direct connections. Transcode helps Lampa integrated player with codecs.",
+                    "transcodeProfile": "Transcode profile",
+                    "transcodeClientProfile": "Client profile type",
+                    "transcodeOptionsTitle": "Transcode",
+                    "transcodeClientWeb": "Web / Chrome",
+                    "transcodeClientIos": "iOS / Safari",
+                    "transcodeClientAppleTv": "Apple TV",
+                    "transcodeClientAndroidTv": "Android TV",
+                    "transcodeClientLgWebos": "LG webOS TV",
+                    "transcodeClientSamsungTizen": "Samsung Tizen TV",
+                    "transcodeClientChromecast": "Chromecast",
+                    "transcodeClientRoku": "Roku",
+                    "transcodeClientGeneric": "Generic TV",
+                    "transcodeClientProfileDescription": "Profile affects codecs, remux, 4K/HDR and tracks. Check Plex logs: using profile ...",
+                    "transcodeBrowserCompat": "Original quality / remux",
+                    "transcode4k40": "4K 40 Mbps",
+                    "transcode4k20": "4K 20 Mbps",
+                    "transcode1080p20": "1080p 20 Mbps",
+                    "transcode1080p12": "1080p 12 Mbps",
+                    "transcode1080p10": "1080p 10 Mbps",
+                    "transcode1080p8": "1080p 8 Mbps",
+                    "transcode720p4": "720p 4 Mbps",
+                    "transcode720p3": "720p 3 Mbps",
+                    "transcode720p2": "720p 2 Mbps",
+                    "transcode480p15": "480p 1.5 Mbps",
+                    "transcode480p720": "480p 720 kbps",
+                    "transcode320p320": "320p 320 kbps",
+                    "transcodeProfileDescription": "Used only with Plex transcode / Auto relay playback.",
+                    "resumePlayback": "Resume playback",
+                    "resumeFrom": "Resume from",
+                    "playFromStart": "Play from start",
+                    "hlsTracksTitle": "Plex HLS tracks",
+                    "hlsTracksHelp": "Choose tracks before playback. Back/Esc closes this menu.",
+                    "hlsAudioPrefix": "Audio",
+                    "hlsSubtitlesPrefix": "Subtitles",
+                    "hlsSubtitlesOff": "Subtitles: Off"
             },
             "uk": {
                     "component": "Plex Source",
@@ -1290,6 +1387,11 @@
                     "debugEmpty": "Nessun log ancora. Apri una scheda film/serie e riprova.",
                     "copyDebugLog": "Copia log",
                     "debugLogCopied": "Log copiato",
+                    "shareDebugLog": "Condividi log",
+                    "openDebugLogText": "Apri log come testo",
+                    "debugLogOpened": "Log aperto in una nuova scheda",
+                    "dolbyVisionDirectFallback": "Dolby Vision Profile 5: transcode Plex disattivato, uso Direct Play.",
+                    "unsafeTranscodeDirectFallback": "Transcode HLS Plex instabile per questo video, uso Direct Play.",
                     "openGithubIssue": "Apri issue GitHub",
                     "showBugReportQr": "QR bug report",
                     "bugReportQrTitle": "Scansiona il QR per aprire una issue GitHub",
@@ -1325,7 +1427,50 @@
                     "actionMarkUnwatched": "Segna non visto su Plex",
                     "markedWatched": "Segnato visto",
                     "markedUnwatched": "Segnato non visto",
-                    "markError": "Aggiornamento Plex fallito"
+                    "markError": "Aggiornamento Plex fallito",
+                    "syncProgressToPlex": "Sincronizza progresso su Plex",
+                    "syncProgressToPlexDescription": "Invia a Plex il progresso del player integrato Lampa. Non funziona con player esterni.",
+                    "optionsTitle": "Opzioni",
+                    "playbackMode": "Modalità riproduzione",
+                    "playbackModeAuto": "Auto",
+                    "playbackModeDirect": "File diretto",
+                    "playbackModeTranscode": "Transcodifica Plex HLS",
+                    "playbackModeDescription": "Auto = transcodifica per relay, file diretto per connessioni direct. La transcodifica aiuta il player integrato Lampa con i codec.",
+                    "transcodeProfile": "Profilo transcodifica",
+                    "transcodeClientProfile": "Tipo profilo client",
+                    "transcodeOptionsTitle": "Transcode",
+                    "transcodeClientWeb": "Web / Chrome",
+                    "transcodeClientIos": "iOS / Safari",
+                    "transcodeClientAppleTv": "Apple TV",
+                    "transcodeClientAndroidTv": "Android TV",
+                    "transcodeClientLgWebos": "LG webOS TV",
+                    "transcodeClientSamsungTizen": "Samsung Tizen TV",
+                    "transcodeClientChromecast": "Chromecast",
+                    "transcodeClientRoku": "Roku",
+                    "transcodeClientGeneric": "Generic TV",
+                    "transcodeClientProfileDescription": "Il profilo influenza codec, remux, 4K/HDR e tracce. Controlla nei log Plex: using profile ...",
+                    "transcodeBrowserCompat": "Qualità originale / remux",
+                    "transcode4k40": "4K 40 Mbps",
+                    "transcode4k20": "4K 20 Mbps",
+                    "transcode1080p20": "1080p 20 Mbps",
+                    "transcode1080p12": "1080p 12 Mbps",
+                    "transcode1080p10": "1080p 10 Mbps",
+                    "transcode1080p8": "1080p 8 Mbps",
+                    "transcode720p4": "720p 4 Mbps",
+                    "transcode720p3": "720p 3 Mbps",
+                    "transcode720p2": "720p 2 Mbps",
+                    "transcode480p15": "480p 1.5 Mbps",
+                    "transcode480p720": "480p 720 kbps",
+                    "transcode320p320": "320p 320 kbps",
+                    "transcodeProfileDescription": "Usato solo con transcodifica Plex / Auto relay.",
+                    "resumePlayback": "Continua riproduzione",
+                    "resumeFrom": "Continua da",
+                    "playFromStart": "Riproduci dall'inizio",
+                    "hlsTracksTitle": "Tracce Plex HLS",
+                    "hlsTracksHelp": "Scegli le tracce prima della riproduzione. Back/Esc chiude il menu.",
+                    "hlsAudioPrefix": "Audio",
+                    "hlsSubtitlesPrefix": "Sottotitoli",
+                    "hlsSubtitlesOff": "Sottotitoli: Off"
             }
     };
 
@@ -1368,7 +1513,11 @@
             matchLimit: parseInt(get('matchLimit', DEFAULTS.matchLimit), 10) || DEFAULTS.matchLimit,
             showOnlyExactYear: boolValue('showOnlyExactYear', DEFAULTS.showOnlyExactYear),
             debug: boolValue('debug', DEFAULTS.debug),
-            episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode)
+            episodeActionMode: String(get('episodeActionMode', DEFAULTS.episodeActionMode) || DEFAULTS.episodeActionMode),
+            syncProgressToPlex: boolValue('syncProgressToPlex', DEFAULTS.syncProgressToPlex),
+            playbackMode: String(get('playbackMode', DEFAULTS.playbackMode) || DEFAULTS.playbackMode),
+            transcodeProfile: String(get('transcodeProfile', DEFAULTS.transcodeProfile) || DEFAULTS.transcodeProfile),
+            transcodeClientProfile: String(get('transcodeClientProfile', DEFAULTS.transcodeClientProfile) || DEFAULTS.transcodeClientProfile)
         };
     }
 
@@ -1405,21 +1554,49 @@
         return !!fallback;
     }
 
+    function redactDebugValue(key, value) {
+        var k = String(key || '').toLowerCase();
+        if (k === 'plextoken' || k === 'token' || k === 'x-plex-token' || k.indexOf('auth') >= 0) return value ? '***' : value;
+        if (typeof value === 'string') {
+            return value.replace(/([?&]X-Plex-Token=)[^&\s]+/ig, '$1***')
+                .replace(/(X-Plex-Token[=:]\s*)[^&\s,}]+/ig, '$1***');
+        }
+        return value;
+    }
+
+    function compactDebugValue(value, depth) {
+        if (depth > 3) return '[nested]';
+        if (Array.isArray(value)) return value.slice(0, 8).map(function (item) { return compactDebugValue(item, depth + 1); });
+        if (value && typeof value === 'object') {
+            var out = {};
+            Object.keys(value).slice(0, 28).forEach(function (key) {
+                if (key === 'file' || key === 'plexToken' || key === 'token') out[key] = value[key] ? '***' : value[key];
+                else out[key] = compactDebugValue(value[key], depth + 1);
+            });
+            return out;
+        }
+        if (typeof value === 'string' && value.length > 500) return value.slice(0, 500) + '…';
+        return value;
+    }
+
+    function debugString(item) {
+        if (typeof item === 'string') return redactDebugValue('', item).slice(0, 900);
+        try { return JSON.stringify(compactDebugValue(item, 0), redactDebugValue, 2); }
+        catch (e) { return String(item).slice(0, 900); }
+    }
+
     function log() {
         if (!DEBUG_ALWAYS && !settings().debug) return;
         var args = [].slice.call(arguments);
         try {
-            DEBUG_BUFFER.push({ time: new Date().toLocaleTimeString(), args: args.map(function (item) {
-                if (typeof item === 'string') return item;
-                try { return JSON.stringify(item, null, 2); }
-                catch (e) { return String(item); }
-            }) });
-            if (DEBUG_BUFFER.length > 80) DEBUG_BUFFER.shift();
+            DEBUG_BUFFER.push({ time: new Date().toLocaleTimeString(), args: args.map(debugString) });
+            if (DEBUG_BUFFER.length > 45) DEBUG_BUFFER.shift();
             window.PlexSourceDebug = DEBUG_BUFFER;
         }
         catch (e) {}
         if (!window.console) return;
-        console.log.apply(console, ['[plex-source]'].concat(args));
+        try { console.log.apply(console, ['[plex-source]'].concat(args.map(function (arg) { return compactDebugValue(arg, 0); }))); }
+        catch (e) {}
     }
 
     function debugText() {
@@ -1446,7 +1623,7 @@
         var payload = {
             plugin: 'plex-source',
             kind: 'bug-report',
-            version: '0.2.0-beta',
+            version: '0.2.66-beta-dev',
             createdAt: new Date().toISOString(),
             description: String(description || ''),
             connection: {
@@ -1540,9 +1717,43 @@
         } catch (e) { window.prompt(t('copyDebugLog'), text); }
     }
 
+    function shareDebugLog() {
+        var text = debugText();
+        var title = t('debugTitle');
+        try {
+            if (navigator.share) {
+                navigator.share({ title: title, text: text }).catch(function (err) { log('debug share failed', err && (err.message || err)); });
+                return;
+            }
+        }
+        catch (e) { log('debug share unavailable', e && (e.message || e)); }
+        openDebugLogText();
+    }
+
+    function openDebugLogText() {
+        var text = debugText();
+        try {
+            var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            var url = URL.createObjectURL(blob);
+            var opened = window.open(url, '_blank');
+            if (opened) {
+                noty(t('debugLogOpened'));
+                setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 60000);
+                return;
+            }
+        }
+        catch (e) { log('debug open text failed', e && (e.message || e)); }
+        try {
+            window.location.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+        }
+        catch (e2) { window.prompt(t('copyDebugLog'), text); }
+    }
+
     function showDebugActions(closeDebug) {
         var items = [
             { title: t('copyDebugLog'), action: 'copy' },
+            { title: t('shareDebugLog'), action: 'share' },
+            { title: t('openDebugLogText'), action: 'openText' },
             { title: t('showBugReportQr'), action: 'qr' },
             { title: t('openGithubIssue'), action: 'issue' },
             { title: t('sendBugReport'), action: 'send' },
@@ -1550,6 +1761,8 @@
         ];
         function run(item) {
             if (item.action === 'copy') copyDebugLog();
+            else if (item.action === 'share') shareDebugLog();
+            else if (item.action === 'openText') openDebugLogText();
             else if (item.action === 'qr') showBugReportQr();
             else if (item.action === 'issue') { try { window.open(bugReportIssueUrl(), '_blank'); } catch (e) {} }
             else if (item.action === 'send') askAndSendBugReport();
@@ -1595,6 +1808,20 @@
         guide.className = 'plex-source-subtitle';
         guide.textContent = t('bugReportGuide') + ' ' + t('debugPressOk');
         box.appendChild(guide);
+        var actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 18px;';
+        [
+            { title: t('copyDebugLog'), run: copyDebugLog },
+            { title: t('shareDebugLog'), run: shareDebugLog },
+            { title: t('openDebugLogText'), run: openDebugLogText }
+        ].forEach(function (action) {
+            var btn = document.createElement('button');
+            btn.textContent = action.title;
+            btn.style.cssText = 'border:0;border-radius:10px;padding:10px 12px;background:#2b6cff;color:#fff;font-weight:600;';
+            btn.onclick = function (event) { event.preventDefault(); event.stopPropagation(); action.run(); };
+            actions.appendChild(btn);
+        });
+        box.appendChild(actions);
         var body = document.createElement('pre');
         body.textContent = debugText();
         body.style.cssText = 'font-family:monospace;font-size:12px;line-height:1.45;white-space:pre-wrap;margin:0;';
@@ -1614,7 +1841,7 @@
         return {
             'Accept': 'application/json, application/xml;q=0.9, */*;q=0.8',
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.0-beta',
+            'X-Plex-Version': '0.2.66-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
             'X-Plex-Platform': 'Web',
             'X-Plex-Platform-Version': (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent.slice(0, 80) : 'Lampa',
@@ -2050,7 +2277,7 @@
             'Accept': 'application/xml',
             'X-Plex-Token': s.plexToken,
             'X-Plex-Product': 'Plex Source for Lampa',
-            'X-Plex-Version': '0.2.0-beta',
+            'X-Plex-Version': '0.2.66-beta-dev',
             'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId
         };
     }
@@ -2058,10 +2285,10 @@
     function targetSettings(target) {
         var s = settings();
         return {
-            plexBase: (target && target.base) || s.plexBase,
-            plexToken: (target && target.token) || s.plexToken,
-            plexConnectionRelay: target && typeof target.relay !== 'undefined' ? !!target.relay : !!s.plexConnectionRelay,
-            clientId: s.clientId || DEFAULTS.clientId
+            plexBase: (target && (target.base || target.plexBase)) || s.plexBase,
+            plexToken: (target && (target.token || target.plexToken)) || s.plexToken,
+            plexConnectionRelay: target && typeof target.relay !== 'undefined' ? !!target.relay : (target && typeof target.plexConnectionRelay !== 'undefined' ? !!target.plexConnectionRelay : !!s.plexConnectionRelay),
+            clientId: (target && target.clientId) || s.clientId || DEFAULTS.clientId
         };
     }
 
@@ -2113,6 +2340,78 @@
         return fetch(url, { method: 'GET', mode: 'cors', headers: plexHeaders(s) }).then(function (resp) {
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
             return resp.text();
+        });
+    }
+
+    function plexPutFrom(target, path, params) {
+        var s = targetSettings(target);
+        if (!s.plexBase || !s.plexToken) return Promise.reject(new Error('missing-config'));
+        var query = new URLSearchParams(params || {});
+        query.set('X-Plex-Token', s.plexToken);
+        var url = s.plexBase + path + (query.toString() ? '?' + query.toString() : '');
+        return fetch(url, { method: 'PUT', mode: 'cors', headers: plexHeaders(s) }).then(function (resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.text();
+        });
+    }
+
+    function resolvePlexPartForStreams(item, target, options) {
+        options = options || {};
+        var requestedAudio = options.audioStreamID ? String(options.audioStreamID) : '';
+        var requestedSubtitle = options.subtitleStreamID ? String(options.subtitleStreamID) : '';
+        if (!item || !item.ratingKey) return Promise.resolve({ partId: item && item.partId || '', xml: null });
+        return fetchXmlFrom(target || itemTarget(item), '/library/metadata/' + encodeURIComponent(item.ratingKey), { _: Date.now() }, 6500).then(function (xml) {
+            var parts = nodes(xml, 'Part');
+            var exact = parts.find(function (part) {
+                var streams = nodes(part, 'Stream');
+                return (requestedAudio && streams.some(function (stream) { return attr(stream, 'streamType') === '2' && attr(stream, 'id') === requestedAudio; })) ||
+                    (requestedSubtitle && streams.some(function (stream) { return attr(stream, 'streamType') === '3' && attr(stream, 'id') === requestedSubtitle; }));
+            });
+            var byItem = item.partId ? parts.find(function (part) { return attr(part, 'id') === String(item.partId); }) : null;
+            var part = exact || byItem || parts[0] || null;
+            return { partId: part ? attr(part, 'id') : (item.partId || ''), xml: xml };
+        }).catch(function (err) {
+            log('resolve Plex selected-stream part failed', err && (err.stack || err.message || err));
+            return { partId: item.partId || '', xml: null };
+        });
+    }
+
+    function setPlexSelectedStreams(item, target, options) {
+        options = options || {};
+        if (!item || (!options.audioStreamID && !options.subtitleStreamID)) return Promise.resolve(false);
+        var effectiveTarget = target || itemTarget(item);
+        var params = { allParts: '1' };
+        if (options.audioStreamID) params.audioStreamID = String(options.audioStreamID);
+        if (options.subtitleStreamID) params.subtitleStreamID = String(options.subtitleStreamID);
+        return resolvePlexPartForStreams(item, effectiveTarget, options).then(function (resolved) {
+            var partId = resolved && resolved.partId;
+            if (!partId) {
+                log('set Plex selected streams skipped: no part id', { ratingKey: item.ratingKey, itemPartId: item.partId || '', audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
+                return false;
+            }
+            log('set Plex selected streams', { ratingKey: item.ratingKey, partId: partId, itemPartId: item.partId || '', audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
+            return plexPutFrom(effectiveTarget, '/library/parts/' + encodeURIComponent(partId), params).then(function () {
+                log('set Plex selected streams done', { ratingKey: item.ratingKey, partId: partId, audioStreamID: params.audioStreamID || '', subtitleStreamID: params.subtitleStreamID || '' });
+                return fetchXmlFrom(effectiveTarget, '/library/metadata/' + encodeURIComponent(item.ratingKey), { _: Date.now() }, 6500).then(function (xml) {
+                    var part = nodes(xml, 'Part').find(function (p) { return attr(p, 'id') === String(partId); }) || nodes(xml, 'Part')[0];
+                    var streams = part ? nodes(part, 'Stream') : [];
+                    var selectedAudio = streams.find(function (stream) { return attr(stream, 'streamType') === '2' && attr(stream, 'selected') === '1'; });
+                    var selectedSubtitle = streams.find(function (stream) { return attr(stream, 'streamType') === '3' && attr(stream, 'selected') === '1'; });
+                    log('verify Plex selected streams', {
+                        ratingKey: item.ratingKey,
+                        partId: partId,
+                        requestedAudioStreamID: params.audioStreamID || '',
+                        selectedAudioStreamID: selectedAudio ? attr(selectedAudio, 'id') : '',
+                        selectedAudioLanguage: selectedAudio ? (attr(selectedAudio, 'language') || attr(selectedAudio, 'languageCode') || '') : '',
+                        requestedSubtitleStreamID: params.subtitleStreamID || '',
+                        selectedSubtitleStreamID: selectedSubtitle ? attr(selectedSubtitle, 'id') : ''
+                    });
+                    return true;
+                }).catch(function (verifyErr) {
+                    log('verify Plex selected streams failed', verifyErr && (verifyErr.stack || verifyErr.message || verifyErr));
+                    return true;
+                });
+            });
         });
     }
 
@@ -2176,9 +2475,44 @@
         return score;
     }
 
-    function mapVideo(video, card, target) {
-        var media = video.querySelector('Media');
-        var part = media ? media.querySelector('Part') : null;
+    function mapStreams(part, type) {
+        if (!part) return [];
+        return nodes(part, 'Stream').map(function (stream) {
+            return {
+                id: attr(stream, 'id'),
+                index: attr(stream, 'index'),
+                streamType: attr(stream, 'streamType'),
+                codec: attr(stream, 'codec'),
+                language: attr(stream, 'language'),
+                languageCode: attr(stream, 'languageCode'),
+                title: attr(stream, 'title'),
+                displayTitle: attr(stream, 'displayTitle'),
+                selected: attr(stream, 'selected'),
+                forced: attr(stream, 'forced'),
+                format: attr(stream, 'format'),
+                key: attr(stream, 'key'),
+                channels: attr(stream, 'channels'),
+                DOVIPresent: attr(stream, 'DOVIPresent'),
+                DOVIProfile: attr(stream, 'DOVIProfile')
+            };
+        }).filter(function (stream) { return !type || stream.streamType === String(type); });
+    }
+
+    function mediaVersionLabel(media, part, index) {
+        var bits = [];
+        if (media && attr(media, 'optimizedForStreaming') === '1') bits.push('Optimized');
+        if (media && attr(media, 'videoResolution')) bits.push(String(attr(media, 'videoResolution')).toUpperCase());
+        if (media && attr(media, 'videoCodec')) bits.push(String(attr(media, 'videoCodec')).toUpperCase());
+        if (media && attr(media, 'audioCodec')) bits.push(String(attr(media, 'audioCodec')).toUpperCase());
+        if (media && attr(media, 'bitrate')) bits.push(formatBitrate(attr(media, 'bitrate')));
+        if (!bits.length && typeof index !== 'undefined') bits.push('Version ' + (index + 1));
+        return bits.join(' · ');
+    }
+
+    function mapVideoMedia(video, card, target, media, part, mediaIndex, partIndex) {
+        var videoStreams = mapStreams(part, 1);
+        var audioStreams = mapStreams(part, 2);
+        var subtitleStreams = mapStreams(part, 3);
         return {
             score: scoreVideo(video, card),
             ratingKey: attr(video, 'ratingKey'),
@@ -2205,6 +2539,15 @@
             container: media ? attr(media, 'container') : '',
             partKey: part ? attr(part, 'key') : '',
             file: part ? attr(part, 'file') : '',
+            partId: part ? attr(part, 'id') : '',
+            mediaId: media ? attr(media, 'id') : '',
+            mediaIndex: typeof mediaIndex !== 'undefined' ? String(mediaIndex) : '0',
+            partIndex: typeof partIndex !== 'undefined' ? String(partIndex) : '0',
+            versionLabel: mediaVersionLabel(media, part, mediaIndex),
+            optimizedForStreaming: (media && attr(media, 'optimizedForStreaming') === '1') || (part && attr(part, 'optimizedForStreaming') === '1') ? '1' : '',
+            videoStreams: videoStreams,
+            audioStreams: audioStreams,
+            subtitleStreams: subtitleStreams,
             guids: guidList(video),
             plexBase: target && target.base,
             plexToken: target && target.token,
@@ -2213,6 +2556,26 @@
             plexConnectionRelay: target && target.relay,
             plexConnectionMeta: target && target.meta
         };
+    }
+
+    function mapVideo(video, card, target) {
+        var media = video.querySelector('Media');
+        var part = media ? media.querySelector('Part') : null;
+        return mapVideoMedia(video, card, target, media, part, 0, 0);
+    }
+
+    function mapVideoVersions(video, card, target) {
+        var medias = nodes(video, 'Media');
+        if (!medias.length) return [mapVideo(video, card, target)];
+        var out = [];
+        medias.forEach(function (media, mediaIndex) {
+            var parts = nodes(media, 'Part');
+            if (!parts.length) out.push(mapVideoMedia(video, card, target, media, null, mediaIndex, 0));
+            parts.forEach(function (part, partIndex) {
+                out.push(mapVideoMedia(video, card, target, media, part, mediaIndex, partIndex));
+            });
+        });
+        return out;
     }
 
     function findMatches(card) {
@@ -2232,8 +2595,8 @@
                     jobs.push(fetchXmlFrom(target, '/library/all', { type: type, title: title, includeGuids: '1' })
                         .then(function (doc) {
                             var selector = type === '2' ? 'Directory,Video' : 'Video';
-                            var mapped = nodes(doc, selector).map(function (v) { return mapVideo(v, card, target); });
-                            log('findMatches:query result', { server: target.serverName, base: target.base, title: title, type: type, selector: selector, count: mapped.length, mapped: mapped });
+                            var mapped = []; nodes(doc, selector).forEach(function (v) { mapped = mapped.concat(mapVideoVersions(v, card, target)); });
+                            log('findMatches:query result', { server: target.serverName, base: target.base, title: title, type: type, selector: selector, count: mapped.length, mapped: mapped.map(function (m) { return { score: m.score, ratingKey: m.ratingKey, title: m.title, year: m.year, partId: m.partId, mediaId: m.mediaId, versionLabel: m.versionLabel, viewOffset: m.viewOffset, server: m.plexServerName }; }) });
                             return mapped;
                         })
                         .catch(function (err) { log('match query failed', { server: target.serverName, title: title, error: err && (err.stack || err.message || err) }); return []; }));
@@ -2245,7 +2608,7 @@
             groups.forEach(function (items) {
                 items.forEach(function (item) {
                     if (!item.ratingKey) return;
-                    var key = (item.plexServerKey || item.plexBase || 'plex') + ':' + item.ratingKey;
+                    var key = (item.plexServerKey || item.plexBase || 'plex') + ':' + item.ratingKey + ':' + (item.mediaId || '') + ':' + (item.partId || item.partKey || '');
                     if (!byKey[key] || item.score > byKey[key].score) byKey[key] = item;
                 });
             });
@@ -2288,35 +2651,254 @@
         var seasonRatingKey = season && season.ratingKey ? season.ratingKey : season;
         return fetchXmlFrom(itemTarget(season), '/library/metadata/' + encodeURIComponent(seasonRatingKey) + '/children', { includeGuids: '1' })
             .then(function (doc) {
-                return nodes(doc, 'Video').map(function (ep) { return mapVideo(ep, {}, itemTarget(season)); })
+                var episodes = [];
+                nodes(doc, 'Video').forEach(function (ep) { episodes = episodes.concat(mapVideoVersions(ep, {}, itemTarget(season))); });
+                return episodes
                     .filter(function (ep) { return ep.ratingKey && ep.partKey; })
                     .sort(function (a, b) { return (parseInt(a.index, 10) || 0) - (parseInt(b.index, 10) || 0); });
             });
     }
 
-    function streamUrl(item) {
-        if (!item || !item.partKey) return '';
-        var s = targetSettings(itemTarget(item));
-        if (s.plexConnectionRelay && item.ratingKey) {
-            var params = new URLSearchParams({
-                path: '/library/metadata/' + item.ratingKey,
-                mediaIndex: '0',
-                partIndex: '0',
-                protocol: 'hls',
-                directPlay: '0',
-                directStream: '0',
-                fastSeek: '1',
-                copyts: '1',
-                subtitles: 'burn',
-                'X-Plex-Token': s.plexToken,
-                'X-Plex-Client-Identifier': s.clientId || DEFAULTS.clientId,
-                'X-Plex-Product': 'Plex Source for Lampa',
-                'X-Plex-Version': '0.2.0-beta',
-                'X-Plex-Platform': 'Web'
-            });
-            return s.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
+    function enrichItemStreams(item) {
+        if (!item || !item.ratingKey || (item._streamsEnriched || ((item.audioStreams || []).length || (item.subtitleStreams || []).length))) return Promise.resolve(item);
+        return fetchXmlFrom(itemTarget(item), '/library/metadata/' + encodeURIComponent(item.ratingKey), {}).then(function (doc) {
+            var videos = nodes(doc, 'Video');
+            var variants = [];
+            videos.forEach(function (video) { variants = variants.concat(mapVideoVersions(video, {}, itemTarget(item))); });
+            var found = variants.find(function (v) {
+                return (item.partId && v.partId === item.partId) || (item.partKey && v.partKey === item.partKey) || (item.mediaId && v.mediaId === item.mediaId);
+            }) || variants[0];
+            if (found) {
+                ['videoStreams', 'audioStreams', 'subtitleStreams', 'partId', 'mediaId', 'mediaIndex', 'partIndex', 'optimizedForStreaming', 'versionLabel'].forEach(function (key) {
+                    if (typeof found[key] !== 'undefined') item[key] = found[key];
+                });
+            }
+            item._streamsEnriched = true;
+            log('enriched Plex streams', { ratingKey: item.ratingKey, partId: item.partId, audio: (item.audioStreams || []).length, subtitles: (item.subtitleStreams || []).length });
+            return item;
+        }).catch(function (err) {
+            log('enrich Plex streams failed', { ratingKey: item.ratingKey, error: err && (err.stack || err.message || err) });
+            item._streamsEnriched = true;
+            return item;
+        });
+    }
+
+    function transcodeProfileParams(profile) {
+        var profiles = {
+            ios_compat: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls', videoResolution: '1080', maxVideoBitrate: '8000', videoBitrate: '8000', videoQuality: '60' },
+            audio_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'mp3', protocol: 'hls' },
+            browser_compat: { directPlay: '0', directStream: '1', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
+            p4k_40: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '40000', videoBitrate: '40000', videoResolution: '4k', protocol: 'hls' },
+            p4k_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '4k', protocol: 'hls' },
+            p1080_20: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '20000', videoBitrate: '20000', videoResolution: '1080', protocol: 'hls' },
+            p1080_12: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '12000', videoBitrate: '12000', videoResolution: '1080', protocol: 'hls' },
+            p1080_10: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '10000', videoBitrate: '10000', videoResolution: '1080', protocol: 'hls' },
+            p1080_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '1080', protocol: 'hls' },
+            p720_4: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '4000', videoBitrate: '4000', videoResolution: '720', protocol: 'hls' },
+            p720_3: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '3000', videoBitrate: '3000', videoResolution: '720', protocol: 'hls' },
+            p720_2: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '2000', videoBitrate: '2000', videoResolution: '720', protocol: 'hls' },
+            p480_1_5: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '1500', videoBitrate: '1500', videoResolution: '480', protocol: 'hls' },
+            p480_720: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '720', videoBitrate: '720', videoResolution: '480', protocol: 'hls' },
+            p320_320: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '320', videoBitrate: '320', videoResolution: '320', protocol: 'hls' },
+            p720_8: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '8000', videoBitrate: '8000', videoResolution: '720', protocol: 'hls' },
+            p480_2: { directPlay: '0', directStream: '0', videoCodec: 'h264', audioCodec: 'aac', maxVideoBitrate: '2000', videoBitrate: '2000', videoResolution: '480', protocol: 'hls' }
+        };
+        return profiles[profile] || profiles.browser_compat;
+    }
+
+    function transcodeClientHeaders(target) {
+        var profile = settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile || 'web';
+        var base = {
+            'X-Plex-Client-Identifier': target.clientId || DEFAULTS.clientId,
+            'X-Plex-Version': '0.2.66-beta-dev'
+        };
+        var profiles = {
+            ios: {
+                'X-Plex-Product': 'Safari',
+                'X-Plex-Platform': 'iOS',
+                'X-Plex-Device': 'iPhone',
+                'X-Plex-Device-Name': 'Lampa iOS HLS',
+                'X-Plex-Client-Profile-Name': 'iOS'
+            },
+            apple_tv: {
+                'X-Plex-Product': 'Plex for Apple TV',
+                'X-Plex-Platform': 'tvOS',
+                'X-Plex-Device': 'Apple TV',
+                'X-Plex-Device-Name': 'Lampa Apple TV HLS',
+                'X-Plex-Client-Profile-Name': 'Apple TV'
+            },
+            android_tv: {
+                'X-Plex-Product': 'Plex for Android TV',
+                'X-Plex-Platform': 'Android',
+                'X-Plex-Device': 'Android TV',
+                'X-Plex-Device-Name': 'Lampa Android TV HLS',
+                'X-Plex-Client-Profile-Name': 'Android'
+            },
+            lg_webos: {
+                'X-Plex-Product': 'Plex for LG',
+                'X-Plex-Platform': 'webOS',
+                'X-Plex-Device': 'LG TV',
+                'X-Plex-Device-Name': 'Lampa LG webOS HLS',
+                'X-Plex-Client-Profile-Name': 'LG TV'
+            },
+            samsung_tizen: {
+                'X-Plex-Product': 'Plex for Samsung',
+                'X-Plex-Platform': 'Tizen',
+                'X-Plex-Device': 'Samsung TV',
+                'X-Plex-Device-Name': 'Lampa Samsung Tizen HLS',
+                'X-Plex-Client-Profile-Name': 'Samsung TV'
+            },
+            chromecast: {
+                'X-Plex-Product': 'Plex for Chromecast',
+                'X-Plex-Platform': 'Chromecast',
+                'X-Plex-Device': 'Chromecast',
+                'X-Plex-Device-Name': 'Lampa Chromecast HLS',
+                'X-Plex-Client-Profile-Name': 'Chromecast'
+            },
+            roku: {
+                'X-Plex-Product': 'Plex for Roku',
+                'X-Plex-Platform': 'Roku',
+                'X-Plex-Device': 'Roku',
+                'X-Plex-Device-Name': 'Lampa Roku HLS',
+                'X-Plex-Client-Profile-Name': 'Roku'
+            },
+            generic: {
+                'X-Plex-Product': 'Plex Generic Client',
+                'X-Plex-Platform': 'Generic',
+                'X-Plex-Device': 'Generic TV',
+                'X-Plex-Device-Name': 'Lampa Generic HLS',
+                'X-Plex-Client-Profile-Name': 'Generic'
+            },
+            web: {
+                'X-Plex-Product': 'Plex Web',
+                'X-Plex-Platform': 'Chrome',
+                'X-Plex-Platform-Version': '120',
+                'X-Plex-Model': 'standalone',
+                'X-Plex-Device': 'Chrome',
+                'X-Plex-Device-Name': 'Lampa Plex Source',
+                'X-Plex-Device-Screen-Resolution': '3840x2160,3840x2160'
+            }
+        };
+        return Object.assign(base, profiles[profile] || profiles.web);
+    }
+
+    function transcodeUrl(item, target, options) {
+        if (!item || !item.ratingKey) return '';
+        options = options || {};
+        var cfg = settings();
+        var profile = (options && options.transcodeProfile) || cfg.transcodeProfile;
+        var sessionParts = [
+            'lps',
+            item.ratingKey || 'item',
+            profile || 'browser',
+            options.audioStreamID || 'a0',
+            options.subtitleStreamID || 's0',
+            options.sessionNonce || 'n0'
+        ];
+        var params = new URLSearchParams(Object.assign({
+            path: '/library/metadata/' + item.ratingKey,
+            mediaIndex: String(item.mediaIndex || '0'),
+            partIndex: String(item.partIndex || '0'),
+            fastSeek: '1',
+            copyts: '1',
+            subtitles: 'auto',
+            session: sessionParts.join('-').replace(/[^a-zA-Z0-9_-]/g, ''),
+            'X-Plex-Token': target.plexToken
+        }, transcodeClientHeaders(target), transcodeProfileParams(profile)));
+        if (options.startOffsetMs && options.startOffsetMs > 0) params.set('offset', Math.max(0, Math.round(options.startOffsetMs / 1000)));
+        if (options.subtitleStreamID) params.set('subtitleStreamID', options.subtitleStreamID);
+        if (/^\d+$/.test(params.get('videoResolution') || '')) params.delete('videoResolution');
+        log('Plex HLS transcode params', { ratingKey: item.ratingKey, mediaIndex: params.get('mediaIndex'), partIndex: params.get('partIndex'), directStream: params.get('directStream'), videoCodec: params.get('videoCodec'), audioCodec: params.get('audioCodec'), maxVideoBitrate: params.get('maxVideoBitrate'), videoBitrate: params.get('videoBitrate') || '', videoResolution: params.get('videoResolution') || '', offset: params.get('offset') || '', clientProfile: settings().transcodeClientProfile || DEFAULTS.transcodeClientProfile, platform: params.get('X-Plex-Platform'), device: params.get('X-Plex-Device'), requestedAudioStreamID: options.audioStreamID || '', urlAudioStreamID: params.get('audioStreamID') || '', subtitleStreamID: params.get('subtitleStreamID') || '', selectedStreamStrategy: options.audioStreamID ? 'part-put-only' : 'default' });
+        return target.plexBase + '/video/:/transcode/universal/start.m3u8?' + params.toString();
+    }
+
+    function shouldExposePlexTranscodeControls(target) {
+        return !!target && settings().playbackMode === 'transcode';
+    }
+
+    function plexAudioTracks(item, target, options) {
+        return null;
+    }
+
+    function plexSubtitleTracks(item, target, options) {
+        if (!item || !item.subtitleStreams || !item.subtitleStreams.length) return null;
+        var out = item.subtitleStreams.filter(function (stream) {
+            return stream.key && /^(srt|ass|ssa|vtt)$/i.test(stream.codec || stream.format || '');
+        }).map(function (stream, idx) {
+            var label = stream.displayTitle || stream.title || stream.language || stream.languageCode || (t('hlsSubtitlesPrefix') + ' ' + (idx + 1));
+            return {
+                index: idx,
+                language: stream.language || stream.languageCode || '',
+                label: label + (stream.forced === '1' ? ' forced' : ''),
+                selected: stream.selected === '1',
+                url: target.plexBase + stream.key + (stream.key.indexOf('?') >= 0 ? '&' : '?') + 'X-Plex-Token=' + encodeURIComponent(target.plexToken)
+            };
+        });
+        return out.length ? out : null;
+    }
+
+    function dolbyVisionProfile(item) {
+        var streams = item && item.videoStreams ? item.videoStreams : [];
+        for (var i = 0; i < streams.length; i++) {
+            if (streams[i].DOVIPresent === '1' || streams[i].DOVIProfile) return String(streams[i].DOVIProfile || '1');
         }
+        return '';
+    }
+
+    function isKnownDirectFriendly(item) {
+        var codec = String(item && item.videoCodec || '').toLowerCase();
+        return codec === 'h264' || codec === 'avc1';
+    }
+
+    function shouldAvoidPlexTranscode(item) {
+        return dolbyVisionProfile(item) === '5';
+    }
+
+    function shouldAudioCompatTranscode(item) {
+        return isKnownDirectFriendly(item);
+    }
+
+    function transcodeAvoidReason(item) {
+        if (dolbyVisionProfile(item) === '5') return 'dolby_vision_profile_5';
+        return '';
+    }
+
+    function directStreamUrl(item, target) {
+        if (!item || !item.partKey) return '';
+        var s = targetSettings(target || itemTarget(item));
         return s.plexBase + item.partKey + (item.partKey.indexOf('?') >= 0 ? '&' : '?') + 'download=0&X-Plex-Token=' + encodeURIComponent(s.plexToken);
+    }
+
+    function setActiveTranscodeProfile(profile, label) {
+        if (!profile) return;
+        try { Lampa.Storage.set('plex_source_transcodeProfile', profile); }
+        catch (e) { try { localStorage.setItem('plex_source_transcodeProfile', profile); } catch (e2) {} }
+        log('Plex transcode profile selected', { profile: profile, label: label || '' });
+    }
+
+    function plexQualityMap(item, target, options) {
+        options = options || {};
+        if (!item || !item.ratingKey) return null;
+        if (!shouldExposePlexTranscodeControls(target) || shouldAvoidPlexTranscode(item)) return qualityMap(item);
+        var profile = settings().transcodeProfile || DEFAULTS.transcodeProfile;
+        return {
+            'Plex HLS': {
+                url: transcodeUrl(item, target, Object.assign({}, options, { transcodeProfile: profile })),
+                label: profile,
+                profile: profile,
+                trigger: function () { setActiveTranscodeProfile(profile, 'Plex HLS'); }
+            }
+        };
+    }
+
+
+    function streamUrl(item, options) {
+        if (!item || !item.partKey) return '';
+        var target = targetSettings(itemTarget(item));
+        if (settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item)) {
+            return transcodeUrl(item, target, Object.assign({}, options || {}, { transcodeProfile: settings().transcodeProfile || DEFAULTS.transcodeProfile }));
+        }
+        return directStreamUrl(item, itemTarget(item));
     }
 
     function thumbUrl(path) {
@@ -2335,9 +2917,11 @@
     function watchedInfo(item) {
         var duration = parseInt(item.duration || '0', 10) || 0;
         var offset = parseInt(item.viewOffset || '0', 10) || 0;
-        var percent = duration && offset ? Math.round(offset / duration * 100) : 0;
-        if (parseInt(item.viewCount || '0', 10) > 0) return { state: 'watched', label: '✓ ' + t('watchedLabel'), percent: 100 };
-        if (percent > 0) return { state: 'progress', label: '◐ ' + t('progressLabel') + ' ' + percent + '%', percent: percent };
+        var percent = duration && offset ? Math.max(1, Math.min(99, Math.round(offset / duration * 100))) : 0;
+        var viewCount = parseInt(item.viewCount || '0', 10) || 0;
+        var nearEnd = duration && offset >= Math.max(duration * 0.9, duration - 10 * 60 * 1000);
+        if (offset > 10000 && !nearEnd) return { state: 'progress', label: '◐ ' + t('progressLabel') + ' ' + percent + '%', percent: percent };
+        if (viewCount > 0 || nearEnd) return { state: 'watched', label: '✓ ' + t('watchedLabel'), percent: 100 };
         return { state: 'unwatched', label: '○ ' + t('unwatchedLabel'), percent: 0 };
     }
 
@@ -2364,6 +2948,153 @@
     }
 
 
+    function plexProgressFrom(item, state, timeMs, durationMs) {
+        if (!item || !item.ratingKey) return Promise.resolve(false);
+        var ratingKey = String(item.ratingKey);
+        var params = {
+            ratingKey: ratingKey,
+            key: '/library/metadata/' + ratingKey,
+            identifier: 'com.plexapp.plugins.library',
+            state: state || 'playing',
+            time: Math.max(0, Math.round(timeMs || 0)),
+            duration: Math.max(0, Math.round(durationMs || item.duration || 0))
+        };
+        return plexCommandFrom(itemTarget(item), '/:/timeline', params).then(function () { return true; });
+    }
+
+    function startPlexProgressSync(item) {
+        if (!settings().syncProgressToPlex || !item || !item.ratingKey) return;
+        ACTIVE_PROGRESS_SYNC = {
+            item: item,
+            lastSentAt: 0,
+            lastTimeMs: 0,
+            durationMs: parseInt(item.duration || '0', 10) || 0,
+            startedAt: Date.now(),
+            maxRealTimeMs: 0,
+            scrobbled: false,
+            stopped: false
+        };
+        log('Plex timeline sync started', { ratingKey: item.ratingKey, durationMs: ACTIVE_PROGRESS_SYNC.durationMs, title: item.title || item.grandparentTitle });
+        sendPlexProgress('playing', 0, true);
+    }
+
+    function clearPlexProgressSync() {
+        ACTIVE_PROGRESS_SYNC = null;
+    }
+
+    function sendPlexProgress(state, timeMs, force) {
+        var sync = ACTIVE_PROGRESS_SYNC;
+        if (!sync || !sync.item || !sync.item.ratingKey) return;
+        var now = Date.now();
+        timeMs = Math.max(0, Math.round(timeMs || sync.lastTimeMs || 0));
+        sync.lastTimeMs = timeMs;
+        if (!force && state === 'playing' && now - sync.lastSentAt < 10000) return;
+        sync.lastSentAt = now;
+        plexProgressFrom(sync.item, state, timeMs, sync.durationMs).then(function () {
+            log('Plex timeline sync sent', { state: state, timeMs: timeMs, durationMs: sync.durationMs, ratingKey: sync.item.ratingKey });
+        }).catch(function (err) {
+            log('Plex timeline sync failed', { state: state, timeMs: timeMs, error: err && (err.stack || err.message || err) });
+        });
+    }
+
+    function maybeScrobblePlexProgress(timeMs, durationMs) {
+        var sync = ACTIVE_PROGRESS_SYNC;
+        if (!sync || sync.scrobbled || !sync.item || !sync.item.ratingKey) return;
+        durationMs = durationMs || sync.durationMs || 0;
+        if (!durationMs || timeMs < Math.max(durationMs * 0.85, durationMs - 5 * 60 * 1000)) return;
+        sync.scrobbled = true;
+        plexCommandFrom(itemTarget(sync.item), '/:/scrobble', {
+            key: sync.item.ratingKey,
+            identifier: 'com.plexapp.plugins.library'
+        }).then(function () {
+            log('Plex progress sync scrobbled', { ratingKey: sync.item.ratingKey });
+        }).catch(function (err) {
+            log('Plex progress sync scrobble failed', err && (err.stack || err.message || err));
+        });
+    }
+
+    function installPlexProgressSync() {
+        if (PROGRESS_SYNC_INSTALLED || !Lampa.PlayerVideo || !Lampa.PlayerVideo.listener) return;
+        PROGRESS_SYNC_INSTALLED = true;
+        Lampa.PlayerVideo.listener.follow('timeupdate', function (e) {
+            if (!ACTIVE_PROGRESS_SYNC) return;
+            var currentMs = Math.round((e && e.current ? e.current : 0) * 1000);
+            var durationMs = Math.round((e && e.duration ? e.duration : 0) * 1000) || ACTIVE_PROGRESS_SYNC.durationMs;
+            ACTIVE_PROGRESS_SYNC.durationMs = durationMs || ACTIVE_PROGRESS_SYNC.durationMs;
+            var elapsed = Date.now() - (ACTIVE_PROGRESS_SYNC.startedAt || Date.now());
+            var suspiciousInstantEnd = durationMs && currentMs >= durationMs * 0.98 && (ACTIVE_PROGRESS_SYNC.maxRealTimeMs || 0) < 30000 && elapsed < 60000;
+            if (suspiciousInstantEnd) {
+                log('Plex progress ignored suspicious instant end', { ratingKey: ACTIVE_PROGRESS_SYNC.item && ACTIVE_PROGRESS_SYNC.item.ratingKey, currentMs: currentMs, durationMs: durationMs, maxRealTimeMs: ACTIVE_PROGRESS_SYNC.maxRealTimeMs || 0, elapsedMs: elapsed });
+                return;
+            }
+            if (currentMs > (ACTIVE_PROGRESS_SYNC.maxRealTimeMs || 0) && (!durationMs || currentMs < durationMs * 0.98)) ACTIVE_PROGRESS_SYNC.maxRealTimeMs = currentMs;
+            sendPlexProgress('playing', currentMs, false);
+            maybeScrobblePlexProgress(currentMs, ACTIVE_PROGRESS_SYNC.durationMs);
+        });
+        Lampa.PlayerVideo.listener.follow('play', function () {
+            if (ACTIVE_PROGRESS_SYNC) sendPlexProgress('playing', ACTIVE_PROGRESS_SYNC.lastTimeMs, true);
+        });
+        Lampa.PlayerVideo.listener.follow('pause', function () {
+            if (ACTIVE_PROGRESS_SYNC) sendPlexProgress('paused', ACTIVE_PROGRESS_SYNC.lastTimeMs, true);
+        });
+        Lampa.PlayerVideo.listener.follow('ended', function () {
+            if (!ACTIVE_PROGRESS_SYNC) return;
+            var sync = ACTIVE_PROGRESS_SYNC;
+            var lastMs = Math.max(0, sync.maxRealTimeMs || sync.lastTimeMs || 0);
+            var durationMs = sync.durationMs || 0;
+            var elapsed = Date.now() - (sync.startedAt || Date.now());
+            var nearEnd = durationMs && lastMs >= Math.max(durationMs * 0.85, durationMs - 5 * 60 * 1000) && elapsed > 60000;
+            var endMs = nearEnd ? durationMs : lastMs;
+            if (nearEnd) maybeScrobblePlexProgress(endMs, durationMs);
+            else log('Plex scrobble skipped: ended before real progress', { ratingKey: sync.item && sync.item.ratingKey, lastTimeMs: lastMs, durationMs: durationMs, elapsedMs: elapsed });
+            sendPlexProgress('stopped', endMs, true);
+            clearPlexProgressSync();
+        });
+        Lampa.Player.listener && Lampa.Player.listener.follow && Lampa.Player.listener.follow('destroy', function () {
+            if (!ACTIVE_PROGRESS_SYNC) return;
+            sendPlexProgress('stopped', ACTIVE_PROGRESS_SYNC.lastTimeMs, true);
+            clearPlexProgressSync();
+        });
+        Lampa.Player.listener && Lampa.Player.listener.follow && Lampa.Player.listener.follow('external', function () {
+            if (!ACTIVE_PROGRESS_SYNC) return;
+            log('Plex timeline sync disabled for external player');
+            clearPlexProgressSync();
+        });
+    }
+
+    var NATIVE_TRACK_DIAGNOSTICS_INSTALLED = false;
+    function installNativeTrackDiagnostics() {
+        if (NATIVE_TRACK_DIAGNOSTICS_INSTALLED || !Lampa.PlayerVideo || !Lampa.PlayerVideo.listener) return;
+        NATIVE_TRACK_DIAGNOSTICS_INSTALLED = true;
+        function countList(list) {
+            try { return list ? list.length || 0 : 0; } catch (e) { return 0; }
+        }
+        function readNativeTracks(reason) {
+            try {
+                var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
+                log('native player tracks probe', {
+                    reason: reason,
+                    audioTracks: video ? countList(video.audioTracks) : 0,
+                    textTracks: video ? countList(video.textTracks) : 0,
+                    hasAudioTracksApi: !!(video && video.audioTracks),
+                    hasTextTracksApi: !!(video && video.textTracks)
+                });
+            }
+            catch (e) { log('native player tracks probe failed', e && (e.stack || e.message || e)); }
+        }
+        Lampa.PlayerVideo.listener.follow('tracks', function (e) {
+            log('native player tracks event', { tracks: countList(e && e.tracks) });
+        });
+        Lampa.PlayerVideo.listener.follow('webos_tracks', function (e) {
+            log('webos player tracks event', { tracks: countList(e && e.tracks) });
+        });
+        Lampa.PlayerVideo.listener.follow('subs', function (e) {
+            log('native player subs event', { subs: countList(e && e.subs) });
+        });
+        Lampa.PlayerVideo.listener.follow('canplay', function () { readNativeTracks('canplay'); });
+        Lampa.PlayerVideo.listener.follow('loadeddata', function () { readNativeTracks('loadeddata'); });
+    }
+
     function probePlaybackUrl(url) {
         var cfg = settings();
         if (!cfg.debug || !cfg.plexConnectionRelay || !url) return;
@@ -2381,32 +3112,294 @@
         });
     }
 
-    function playItem(card, item) {
-        var url = streamUrl(item);
+    function formatResumeTime(ms) {
+        var total = Math.max(0, Math.floor((parseInt(ms || '0', 10) || 0) / 1000));
+        var h = Math.floor(total / 3600);
+        var m = Math.floor((total % 3600) / 60);
+        var sec = total % 60;
+        function pad(n) { return n < 10 ? '0' + n : String(n); }
+        return h ? (h + ':' + pad(m) + ':' + pad(sec)) : (m + ':' + pad(sec));
+    }
+
+    function hasResumeOffset(item) {
+        var offset = parseInt(item && item.viewOffset || '0', 10) || 0;
+        var duration = parseInt(item && item.duration || '0', 10) || 0;
+        if (offset <= 10000) return false;
+        if (duration > 0 && offset >= Math.max(duration * 0.9, duration - 10 * 60 * 1000)) return false;
+        return true;
+    }
+
+    function playlistTitleFor(card, item) {
+        return (item.grandparentTitle || localTitleFrom(card) || t('showFallback')) + ' — S' + (item.parentIndex || '?') + 'E' + (item.index || '?') + ' — ' + (item.title || t('episodeFallback'));
+    }
+
+    function playlistEntryFor(card, item) {
+        var url = streamUrl(item, {});
+        var timeline = timelineFor(card, item) || {};
+        return {
+            title: playlistTitleFor(card, item).replace(/<[^>]*>?/gm, ''),
+            url: url,
+            timeline: timeline,
+            thumbnail: thumbUrl(item.thumb, item) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
+            torrent_hash: 'plex-source:' + (item.ratingKey || item.partKey || 'stream') + ':' + (item.partId || item.mediaId || ''),
+            callback: function () {
+                startPlexProgressSync(item);
+            }
+        };
+    }
+
+    function isHlsTranscodeActive(item) {
+        var target = targetSettings(itemTarget(item));
+        return shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item);
+    }
+
+    function seasonPlaylistFor(card, selectedItem) {
+        if (isHlsTranscodeActive(selectedItem)) {
+            log('season playlist disabled for HLS transcode to avoid parallel Plex sessions', { ratingKey: selectedItem && selectedItem.ratingKey });
+            return null;
+        }
+        var groups = selectedItem && selectedItem.seasonEpisodeGroups;
+        if (!groups || !groups.length) return null;
+        var selectedKey = selectedItem && selectedItem.playlistGroupKey;
+        var selectedPart = selectedItem && (selectedItem.partId || selectedItem.partKey || selectedItem.mediaId);
+        var list = [];
+        groups.forEach(function (group) {
+            var ep = group.main;
+            if (group.key === selectedKey && group.versions && group.versions.length) {
+                ep = group.versions.find(function (v) {
+                    return (v.partId || v.partKey || v.mediaId) === selectedPart;
+                }) || ep;
+            }
+            if (ep && ep.partKey) list.push(playlistEntryFor(card, ep));
+        });
+        return list.length > 1 ? list : null;
+    }
+
+    function attachSeasonPlaylistMeta(ep, groups, group) {
+        var copy = Object.assign({}, ep);
+        copy.seasonEpisodeGroups = groups;
+        copy.playlistGroupKey = group && group.key || episodeVersionKey(ep);
+        return copy;
+    }
+
+    function streamLabel(stream, fallback) {
+        return (stream && (stream.displayTitle || stream.title || stream.language || stream.languageCode)) || fallback || '';
+    }
+
+    function hlsTrackMemoryKeys(item) {
+        var server = item && (item.plexServerKey || item.plexServerName || item.plexBase || 'plex') || 'plex';
+        var rating = item && item.ratingKey || '';
+        var part = item && (item.partId || item.mediaId || item.partKey || '') || '';
+        return [
+            ['plex_source_hls_tracks', server, rating, part].join('_'),
+            ['plex_source_hls_tracks', rating, part].join('_'),
+            ['plex_source_hls_tracks', rating].join('_')
+        ].map(function (key) { return key.replace(/[^a-zA-Z0-9_-]/g, '_'); });
+    }
+
+    function loadHlsTrackMemory(item) {
+        var keys = hlsTrackMemoryKeys(item);
+        for (var i = 0; i < keys.length; i++) {
+            try {
+                var raw = Lampa.Storage.get(keys[i], '');
+                if (raw) {
+                    var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                    if (parsed && (parsed.audioStreamID || parsed.subtitleStreamID)) return parsed;
+                }
+            }
+            catch (e) {}
+        }
+        return {};
+    }
+
+    function saveHlsTrackMemory(item, data) {
+        hlsTrackMemoryKeys(item).forEach(function (key) {
+            try { Lampa.Storage.set(key, JSON.stringify(data || {})); }
+            catch (e) {}
+        });
+        log('saved HLS track choice', { ratingKey: item && item.ratingKey, partId: item && item.partId, audioStreamID: data && data.audioStreamID || '', subtitleStreamID: data && data.subtitleStreamID || '' });
+    }
+
+    function hlsPreplayOptions(item) {
+        var audio = (item && item.audioStreams || []).filter(function (stream) { return stream.id; });
+        var subs = (item && item.subtitleStreams || []).filter(function (stream) { return stream.id; });
+        return { audio: audio, subs: subs };
+    }
+
+    function maybeChooseHlsTracksBeforePlay(card, item, baseOptions) {
+        baseOptions = Object.assign({}, baseOptions || {});
+        if (baseOptions.hlsTracksChosen || settings().playbackMode !== 'transcode' || shouldAvoidPlexTranscode(item)) {
+            playItem(card, item, baseOptions);
+            return;
+        }
+        if (!baseOptions.streamsEnriched) {
+            enrichItemStreams(item).then(function (enriched) {
+                maybeChooseHlsTracksBeforePlay(card, enriched, Object.assign({}, baseOptions, { streamsEnriched: true }));
+            }).catch(function () {
+                playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true }));
+            });
+            return;
+        }
+        var available = hlsPreplayOptions(item);
+        var audioChoices = available.audio;
+        var subChoices = available.subs;
+        if (audioChoices.length < 2 && !subChoices.length) {
+            playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true }));
+            return;
+        }
+        var rememberedTracks = loadHlsTrackMemory(item);
+        var rememberedAudio = rememberedTracks.audioStreamID && audioChoices.some(function (s) { return s.id === rememberedTracks.audioStreamID; }) ? rememberedTracks.audioStreamID : '';
+        var rememberedSubtitle = rememberedTracks.subtitleStreamID && subChoices.some(function (s) { return s.id === rememberedTracks.subtitleStreamID; }) ? rememberedTracks.subtitleStreamID : '';
+        var selectedAudio = baseOptions.audioStreamID || rememberedAudio || (audioChoices.find(function (s) { return s.selected === '1'; }) || audioChoices[0] || {}).id || '';
+        var selectedSubtitle = typeof baseOptions.subtitleStreamID !== 'undefined' ? baseOptions.subtitleStreamID : rememberedSubtitle;
+        var rows = [];
+        var selectedMeta = (selectedAudio ? t('hlsAudioPrefix') + ': ' + streamLabel(audioChoices.find(function (s) { return s.id === selectedAudio; }), selectedAudio) : '') + (selectedSubtitle ? ' · ' + t('hlsSubtitlesPrefix') + ': ' + streamLabel(subChoices.find(function (s) { return s.id === selectedSubtitle; }), selectedSubtitle) : '');
+        var resumeOffset = parseInt(baseOptions.startOffsetMs || item.viewOffset || '0', 10) || 0;
+        if (resumeOffset > 10000) rows.push({ title: '▶ ' + t('resumeFrom') + ' ' + formatResumeTime(resumeOffset), meta: selectedMeta, action: 'play', startOffsetMs: resumeOffset });
+        rows.push({ title: '▶ ' + t('playFromStart'), meta: selectedMeta, action: 'play', startOffsetMs: 0 });
+        audioChoices.forEach(function (stream, idx) {
+            rows.push({ title: (stream.id === selectedAudio ? '✓ ' : '') + t('hlsAudioPrefix') + ': ' + streamLabel(stream, t('hlsAudioPrefix') + ' ' + (idx + 1)), meta: stream.codec || '', action: 'audio', id: stream.id });
+        });
+        rows.push({ title: (!selectedSubtitle ? '✓ ' : '') + t('hlsSubtitlesOff'), action: 'subtitle', id: '' });
+        subChoices.forEach(function (stream, idx) {
+            rows.push({ title: (stream.id === selectedSubtitle ? '✓ ' : '') + t('hlsSubtitlesPrefix') + ': ' + streamLabel(stream, t('hlsSubtitlesPrefix') + ' ' + (idx + 1)), meta: stream.codec || '', action: 'subtitle', id: stream.id });
+        });
+        function runPreplayRow(row) {
+            if (row.action === 'play') {
+                saveHlsTrackMemory(item, { audioStreamID: selectedAudio || '', subtitleStreamID: selectedSubtitle || '' });
+                playItem(card, item, Object.assign({}, baseOptions, { hlsTracksChosen: true, startOffsetMs: row.startOffsetMs || 0, audioStreamID: selectedAudio || undefined, subtitleStreamID: selectedSubtitle || undefined }));
+            }
+            else {
+                var next = Object.assign({}, baseOptions, { hlsTracksChosen: false, streamsEnriched: true });
+                if (row.action === 'audio') next.audioStreamID = row.id;
+                if (row.action === 'subtitle') next.subtitleStreamID = row.id || undefined;
+                saveHlsTrackMemory(item, { audioStreamID: next.audioStreamID || selectedAudio || '', subtitleStreamID: typeof next.subtitleStreamID !== 'undefined' ? next.subtitleStreamID || '' : selectedSubtitle || '' });
+                maybeChooseHlsTracksBeforePlay(card, item, next);
+            }
+        }
+        var nativeRows = rows.map(function (row) {
+            return { title: row.title, subtitle: row.meta || '', row: row };
+        });
+        if (showNativeSelect(t('hlsTracksTitle'), nativeRows, function (choice) {
+            runPreplayRow(choice.row || choice);
+        }, function () {
+            restoreFocusAfterOverlay();
+        })) return;
+        showList(t('hlsTracksTitle'), t('hlsTracksHelp'), rows.map(function (row) {
+            return {
+                title: row.title,
+                meta: row.meta || '',
+                onClick: function () {
+                    closeOverlay(false);
+                    runPreplayRow(row);
+                }
+            };
+        }), { back: function () { closeOverlay(false); restoreFocusAfterOverlay(); } });
+    }
+
+    function playItemWithChoice(card, item) {
+        function startWithOptions(opts) {
+            maybeChooseHlsTracksBeforePlay(card, item, opts || { startOffsetMs: 0 });
+        }
+        var usePlexHls = settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item);
+        if (!hasResumeOffset(item)) return startWithOptions({ startOffsetMs: 0 });
+        var offset = parseInt(item.viewOffset || '0', 10) || 0;
+        if (usePlexHls) return startWithOptions({ startOffsetMs: offset });
+        var state = watchedInfo(item);
+        var title = item.title || item.grandparentTitle || localTitleFrom(card) || 'Plex';
+        if (showNativeSelect(t('resumePlayback'), [
+            { title: t('resumeFrom') + ' ' + formatResumeTime(offset), subtitle: state && state.label ? state.label : '', offset: offset },
+            { title: t('playFromStart'), offset: 0 }
+        ], function (choice) {
+            startWithOptions({ startOffsetMs: choice.offset || 0 });
+        }, function () {
+            restoreFocusAfterOverlay();
+        })) return;
+        var useResume = window.confirm ? window.confirm(t('resumeFrom') + ' ' + formatResumeTime(offset) + '?') : true;
+        startWithOptions({ startOffsetMs: useResume ? offset : 0 });
+    }
+
+    function playItem(card, item, options) {
+        options = options || {};
+        if (!options.streamsEnriched) {
+            enrichItemStreams(item).then(function (enriched) {
+                playItem(card, enriched, Object.assign({}, options, { streamsEnriched: true }));
+            });
+            return;
+        }
+        if (isShow(card) && item && item.type === 'movie') {
+            log('blocked stale Plex movie item for show card', { card: debugCard(card), item: { ratingKey: item.ratingKey, title: item.title, type: item.type } });
+            noty(t('notPlayable'));
+            return;
+        }
+        if (!options.sessionNonce) options.sessionNonce = String(Date.now()) + Math.floor(Math.random() * 10000);
+        var playTarget = targetSettings(itemTarget(item));
+        var usePlexHls = settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item);
+        if (usePlexHls && !options.streamsSelected && (options.audioStreamID || options.subtitleStreamID)) {
+            setPlexSelectedStreams(item, playTarget, options).then(function () {
+                setTimeout(function () {
+                    playItem(card, item, Object.assign({}, options, { streamsSelected: true }));
+                }, 900);
+            }).catch(function (err) {
+                log('set Plex selected streams failed, continuing with HLS params', err && (err.stack || err.message || err));
+                setTimeout(function () {
+                    playItem(card, item, Object.assign({}, options, { streamsSelected: true }));
+                }, 250);
+            });
+            return;
+        }
+        var url = streamUrl(item, options);
         if (!url) {
             noty(t('notPlayable'));
             return;
         }
-        var timeline = timelineFor(card, item);
+        var timeline = timelineFor(card, item) || {};
+        var startOffsetMs = parseInt(options.startOffsetMs || '0', 10) || 0;
+        var durationMs = parseInt(item.duration || '0', 10) || 0;
+        if (startOffsetMs > 0) {
+            timeline.time = startOffsetMs / 1000;
+            if (durationMs) timeline.percent = Math.max(1, Math.min(89, Math.round(startOffsetMs / durationMs * 100)));
+            timeline.duration = durationMs ? durationMs / 1000 : timeline.duration;
+            timeline.continued = false;
+            timeline.stop_recording = false;
+        }
+        else {
+            timeline.time = 0;
+            timeline.percent = 0;
+            timeline.continued = true;
+            timeline.stop_recording = true;
+        }
         var title = isShow(card)
             ? ((item.grandparentTitle || localTitleFrom(card) || t('showFallback')) + ' — S' + (item.parentIndex || '?') + 'E' + (item.index || '?') + ' — ' + (item.title || t('episodeFallback')))
             : ((localTitleFrom(card) || item.title || 'Plex') + ' / Plex — ' + (item.sectionTitle || 'Library'));
 
+        var target = playTarget;
+        if (shouldExposePlexTranscodeControls(target) && !shouldAvoidPlexTranscode(item)) setActiveTranscodeProfile((settings().transcodeProfile || DEFAULTS.transcodeProfile), 'startup');
         var data = {
             url: url,
             title: title.replace(/<[^>]*>?/gm, ''),
-            quality: qualityMap(item),
+            quality: plexQualityMap(item, target, options),
+            voiceovers: (settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item)) ? null : plexAudioTracks(item, target, options),
+            subtitles: (settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item)) ? null : plexSubtitleTracks(item, target, options),
             timeline: timeline,
             card: card,
             thumbnail: thumbUrl(item.thumb, item) || (card && card.poster_path && Lampa.Api ? Lampa.Api.img(card.poster_path) : ''),
             torrent_hash: 'plex-source:' + (item.ratingKey || item.partKey || 'stream'),
             plex: { ratingKey: item.ratingKey, sectionTitle: item.sectionTitle }
         };
+        if (settings().playbackMode === 'transcode' && !shouldAvoidPlexTranscode(item)) {
+            data.hls_manifest_timeout = 20000;
+            data.hls_retry_timeout = 45000;
+            log('Plex HLS playback uses Lampa m3u8 handler', { player_hls_method: Lampa.Storage && Lampa.Storage.get ? Lampa.Storage.get('player_hls_method', '') : '' });
+        }
 
-        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url) });
+        log('play item', { relay: targetSettings(itemTarget(item)).plexConnectionRelay, base: targetSettings(itemTarget(item)).plexBase, server: item.plexServerName, ratingKey: item.ratingKey, partKey: item.partKey, url: maskTokenUrl(data.url), syncProgressToPlex: settings().syncProgressToPlex, playbackMode: settings().playbackMode, transcodeProfile: settings().transcodeProfile, audioStreamID: options.audioStreamID || '', subtitleStreamID: options.subtitleStreamID || '' });
         probePlaybackUrl(data.url);
+        startPlexProgressSync(item);
+        if (ACTIVE_PROGRESS_SYNC && startOffsetMs > 0) ACTIVE_PROGRESS_SYNC.lastTimeMs = startOffsetMs;
+        var playlist = seasonPlaylistFor(card, item) || [{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }];
         Lampa.Player.play(data);
-        Lampa.Player.playlist([{ title: data.title, url: data.url, timeline: timeline, thumbnail: data.thumbnail, torrent_hash: data.torrent_hash }]);
+        Lampa.Player.playlist(playlist);
     }
 
     function ensureStyle() {
@@ -2718,13 +3711,64 @@
         });
     }
 
+    function episodeVersionKey(ep) {
+        return [ep.ratingKey || '', ep.parentIndex || '', ep.index || '', ep.title || ''].join(':');
+    }
+
+    function groupEpisodeVersions(episodes) {
+        var groups = [];
+        var byKey = {};
+        (episodes || []).forEach(function (ep) {
+            var key = episodeVersionKey(ep);
+            if (!byKey[key]) {
+                byKey[key] = { key: key, main: ep, versions: [] };
+                groups.push(byKey[key]);
+            }
+            byKey[key].versions.push(ep);
+            if (ep.optimizedForStreaming === '1' || (!byKey[key].main.partKey && ep.partKey)) byKey[key].main = ep;
+        });
+        return groups;
+    }
+
+    function versionBits(item) {
+        var bits = [];
+        if (item.optimizedForStreaming === '1') bits.push('Optimized');
+        else bits.push('Original');
+        if (item.resolution) bits.push(String(item.resolution).toUpperCase());
+        if (item.videoCodec) bits.push(String(item.videoCodec).toUpperCase());
+        if (item.audioCodec) bits.push(String(item.audioCodec).toUpperCase());
+        if (item.bitrate) bits.push(formatBitrate(item.bitrate));
+        return bits;
+    }
+
+    function showVersionSelect(card, show, season, item, onBack) {
+        var versions = item && item.versions ? item.versions : [item && item.episode ? item.episode : item];
+        if (!versions || versions.length <= 1) return playItemWithChoice(card, versions && versions[0]);
+        var groups = item && item.seasonEpisodeGroups;
+        var group = { key: item && item.playlistGroupKey };
+        var title = 'E' + (versions[0].index || '?') + ' — ' + (versions[0].title || t('episodeFallback'));
+        var rows = versions.map(function (ep) {
+            var episode = attachSeasonPlaylistMeta(ep, groups, group);
+            return { title: versionBits(ep).join(' · '), subtitle: ep.file ? String(ep.file).split(/[\\/]/).pop() : '', episode: episode };
+        });
+        if (showNativeSelect(title, rows, function (row) {
+            playItemWithChoice(card, row.episode);
+        }, function () {
+            if (onBack) onBack(); else openSeason(card, show, season);
+        })) return true;
+        showList(title, t('selectVersion') || 'Version', rows.map(function (row) {
+            return { title: row.title, meta: row.subtitle, onClick: function () { closeOverlay(false); playItemWithChoice(card, row.episode); } };
+        }), { back: function () { if (onBack) onBack(); else openSeason(card, show, season); } });
+        return true;
+    }
+
     function showEpisodeActions(card, show, season, ep) {
         showNativeSelect(ep.title || t('episodeFallback'), [
             { title: t('actionPlay'), episode: ep, action: 'play' },
             { title: t('actionMarkWatched'), episode: ep, action: 'watched' },
             { title: t('actionMarkUnwatched'), episode: ep, action: 'unwatched' }
         ], function (item) {
-            if (item.action === 'play') playItem(card, ep);
+            if (item.action === 'play') playItemWithChoice(card, ep);
             else if (item.action === 'watched') markEpisode(card, show, season, ep, true);
             else if (item.action === 'unwatched') markEpisode(card, show, season, ep, false);
         }, function () {
@@ -2733,8 +3777,9 @@
     }
 
     function handleEpisodeSelect(card, show, season, ep) {
+        if (ep && ep.versions && ep.versions.length > 1) return showVersionSelect(card, show, season, ep);
         if (settings().episodeActionMode === 'actions') showEpisodeActions(card, show, season, ep);
-        else playItem(card, ep);
+        else playItemWithChoice(card, ep);
     }
 
     function showEpisodeGrid(card, show, season, episodes) {
@@ -2797,7 +3842,7 @@
             titleEl.className = 'plex-source-card__title';
             titleEl.textContent = ep.title || t('episodeFallback');
             item.appendChild(titleEl);
-            item.onclick = function () { closeOverlay(true); playItem(card, ep); };
+            item.onclick = function () { closeOverlay(false); playItemWithChoice(card, ep); };
             grid.appendChild(item);
         });
         wrap.appendChild(grid);
@@ -2815,18 +3860,21 @@
         noty(t('loadingEpisodes'));
         fetchEpisodes(season).then(function (episodes) {
             var title = 'Plex — ' + season.title;
-            var nativeItems = episodes.map(function (ep) {
+            var episodeGroups = groupEpisodeVersions(episodes);
+            var nativeItems = episodeGroups.map(function (group) {
+                var ep = group.main;
                 var bits = [];
                 if (ep.resolution) bits.push(String(ep.resolution).toUpperCase());
                 if (ep.videoCodec) bits.push(ep.videoCodec.toUpperCase());
                 if (ep.bitrate) bits.push(formatBitrate(ep.bitrate));
+                if (group.versions.length > 1) bits.push(group.versions.length + ' versions');
                 bits.unshift(watchedInfo(ep).label);
                 return {
                     title: 'E' + (ep.index || '?') + ' — ' + (ep.title || t('episodeFallback')),
                     subtitle: bits.join(' · '),
                     template: 'selectbox_icon',
                     icon: imageIcon(ep.thumb || season.thumb || show.thumb || card.backdrop_path || card.poster_path, card.backdrop_path && Lampa.Api ? Lampa.Api.img(card.backdrop_path) : '', ep),
-                    episode: ep
+                    episode: attachSeasonPlaylistMeta(Object.assign({}, ep, { versions: group.versions }), episodeGroups, group)
                 };
             });
             if (showNativeSelect(title, nativeItems, function (item) {
@@ -2837,16 +3885,18 @@
                 showEpisodeActions(card, show, season, item.episode);
             })) return;
 
-            showList(title, show.title || localTitleFrom(card), episodes.map(function (ep) {
+            showList(title, show.title || localTitleFrom(card), episodeGroups.map(function (group) {
+                var ep = group.main;
                 var bits = [];
                 if (ep.resolution) bits.push(String(ep.resolution).toUpperCase());
                 if (ep.videoCodec) bits.push(ep.videoCodec.toUpperCase());
                 if (ep.bitrate) bits.push(formatBitrate(ep.bitrate));
+                if (group.versions.length > 1) bits.push(group.versions.length + ' versions');
                 bits.unshift(watchedInfo(ep).label);
                 return {
                     title: 'E' + (ep.index || '?') + ' — ' + (ep.title || t('episodeFallback')),
                     meta: bits.join(' · '),
-                    onClick: function () { closeOverlay(true); playItem(card, ep); }
+                    onClick: function () { closeOverlay(false); handleEpisodeSelect(card, show, season, attachSeasonPlaylistMeta(Object.assign({}, ep, { versions: group.versions }), episodeGroups, group)); }
                 };
             }), {
                 back: function () { openShow(card, show, season.ratingKey); }
@@ -2873,9 +3923,16 @@
     function buildButton(card, match) {
         var subtitle = [];
         if (match.year) subtitle.push(match.year);
-        if (!isShow(card) && match.resolution) subtitle.push(String(match.resolution).toUpperCase());
-        if (!isShow(card) && match.videoCodec) subtitle.push(match.videoCodec.toUpperCase());
-        if (!isShow(card) && match.bitrate) subtitle.push(formatBitrate(match.bitrate));
+        if (!isShow(card)) {
+            var state = watchedInfo(match);
+            if (state && state.label) subtitle.push(state.label);
+        }
+        if (!isShow(card) && match.versionLabel) subtitle.push(match.versionLabel);
+        else {
+            if (!isShow(card) && match.resolution) subtitle.push(String(match.resolution).toUpperCase());
+            if (!isShow(card) && match.videoCodec) subtitle.push(match.videoCodec.toUpperCase());
+            if (!isShow(card) && match.bitrate) subtitle.push(formatBitrate(match.bitrate));
+        }
 
         var sourceLabel = match.sectionTitle || 'Library';
         if (settings().serverMode === 'all' && match.plexServerName) sourceLabel += ' — ' + match.plexServerName;
@@ -2887,7 +3944,7 @@
         button.on('hover:enter', function () {
             LAST_TRIGGER_ELEMENT = button[0];
             if (isShow(card)) openShow(card, match);
-            else playItem(card, match);
+            else playItemWithChoice(card, match);
         });
         return button;
     }
@@ -2941,11 +3998,9 @@
         try {
             if (!ACTIVE_SOURCE_SELECT || !Lampa.Select || !Lampa.Select.show || !document.body.classList.contains('selectbox--open')) return;
             var nextItems = sourceItemsFromButtons(root);
-            var hadPlex = ACTIVE_SOURCE_SELECT.items.some(function (item) { return item && item.btn && item.btn.hasClass && item.btn.hasClass('view--plex-source'); });
             var hasPlex = nextItems.some(function (item) { return item && item.btn && item.btn.hasClass && item.btn.hasClass('view--plex-source'); });
-            if (hadPlex === hasPlex && ACTIVE_SOURCE_SELECT.items.length === nextItems.length) return;
             ACTIVE_SOURCE_SELECT.items = nextItems;
-            log('refresh open source select', { items: nextItems.length, hasPlex: hasPlex });
+            log('refresh open source select', { items: nextItems.length, hasPlex: hasPlex, forced: true });
             Lampa.Select.show(ACTIVE_SOURCE_SELECT);
         }
         catch (e) { log('refresh open source select failed', e && (e.stack || e.message || e)); }
@@ -2960,7 +4015,7 @@
         root.find('.view--plex-source').remove();
         (matches || []).forEach(function (match) {
             if (!isShow(e.data.movie) && !match.partKey) return;
-            log('attachButtons: append match', match);
+            log('attachButtons: append match', { ratingKey: match.ratingKey, title: match.title, year: match.year, partId: match.partId, versionLabel: match.versionLabel, viewOffset: match.viewOffset, server: match.plexServerName });
             container.append(buildButton(e.data.movie, match));
         });
         log('attachButtons: final button count', root.find('.view--plex-source').length);
@@ -2999,7 +4054,7 @@
         if (!s.enabled) { log('plugin disabled'); return; }
         if (!s.plexToken || (s.serverMode !== 'all' && !s.plexBase)) { log('skip: missing Plex config'); return; }
         findMatches(card).then(function (matches) {
-            log('matches result', { count: matches.length, matches: matches });
+            log('matches result', { count: matches.length, matches: matches.map(function (m) { return { score: m.score, ratingKey: m.ratingKey, title: m.title, year: m.year, partId: m.partId, versionLabel: m.versionLabel, viewOffset: m.viewOffset, server: m.plexServerName }; }) });
             attachButtons(e, matches);
         }).catch(function (err) {
             log('lookup failed', err && (err.stack || err.message || err));
@@ -3046,6 +4101,7 @@
         }
 
         add({ type: 'title', name: component + '_title_status', field: { name: t('statusTitle') } });
+        add({ type: 'static', name: component + '_version', field: { name: 'Plugin version', description: '0.2.66-beta-dev' } });
         add({ type: 'trigger', name: component + '_enabled', default: settings().enabled, field: { name: t('enabled') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.enabled); save({ enabled: next }); noty(t('enabled') + ': ' + (next ? t('on') : t('off'))); } });
 
         add({ type: 'title', name: component + '_title_connection', field: { name: t('connectionTitle') } });
@@ -3068,6 +4124,13 @@
         add({ type: 'button', name: component + '_match_limit', field: { name: t('matchLimit'), description: t('limitDescription') }, onChange: function () { promptText(t('matchLimit'), String(DEFAULTS.matchLimit), String(settings().matchLimit), function (v) { var n = parseInt(v, 10); save({ matchLimit: n > 0 ? n : DEFAULTS.matchLimit }); noty(t('savedLimit')); }); } });
         add({ type: 'trigger', name: component + '_exact_year', default: settings().showOnlyExactYear, field: { name: t('exactYear'), description: t('exactYearDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.showOnlyExactYear); save({ showOnlyExactYear: next }); noty(t('exactYear') + ': ' + (next ? t('on') : t('off'))); } });
         add({ type: 'select', name: component + '_episode_action_mode', values: { play_long_actions: t('modePlayLong'), actions: t('modeActions') }, default: settings().episodeActionMode, field: { name: t('episodeActionMode'), description: t('episodeActionModeDescription') }, onChange: function (value) { save({ episodeActionMode: value || DEFAULTS.episodeActionMode }); } });
+        add({ type: 'trigger', name: component + '_sync_progress_to_plex', default: settings().syncProgressToPlex, field: { name: t('syncProgressToPlex'), description: t('syncProgressToPlexDescription') }, onChange: function (value) { var next = boolFromParam(value, DEFAULTS.syncProgressToPlex); save({ syncProgressToPlex: next }); noty(t('syncProgressToPlex') + ': ' + (next ? t('on') : t('off'))); } });
+
+        add({ type: 'title', name: component + '_title_options', field: { name: t('optionsTitle') } });
+        add({ type: 'title', name: component + '_title_transcode_options', field: { name: t('transcodeOptionsTitle') } });
+        add({ type: 'select', name: component + '_playback_mode', values: { direct: t('playbackModeDirect'), transcode: t('playbackModeTranscode') }, default: settings().playbackMode, field: { name: t('playbackMode'), description: t('playbackModeDescription') }, onChange: function (value) { save({ playbackMode: value || DEFAULTS.playbackMode }); noty(t('playbackMode') + ': ' + (value || DEFAULTS.playbackMode)); } });
+        add({ type: 'select', name: component + '_transcode_profile', values: { browser_compat: t('transcodeBrowserCompat'), p4k_40: t('transcode4k40'), p4k_20: t('transcode4k20'), p1080_20: t('transcode1080p20'), p1080_12: t('transcode1080p12'), p1080_10: t('transcode1080p10'), p1080_8: t('transcode1080p8'), p720_4: t('transcode720p4'), p720_3: t('transcode720p3'), p720_2: t('transcode720p2'), p480_1_5: t('transcode480p15'), p480_720: t('transcode480p720'), p320_320: t('transcode320p320') }, default: settings().transcodeProfile, field: { name: t('transcodeProfile'), description: t('transcodeProfileDescription') }, onChange: function (value) { save({ transcodeProfile: value || DEFAULTS.transcodeProfile }); noty(t('transcodeProfile') + ': ' + (value || DEFAULTS.transcodeProfile)); } });
+        add({ type: 'select', name: component + '_transcode_client_profile', values: { web: t('transcodeClientWeb'), ios: t('transcodeClientIos'), apple_tv: t('transcodeClientAppleTv'), android_tv: t('transcodeClientAndroidTv'), lg_webos: t('transcodeClientLgWebos'), samsung_tizen: t('transcodeClientSamsungTizen'), chromecast: t('transcodeClientChromecast'), roku: t('transcodeClientRoku'), generic: t('transcodeClientGeneric') }, default: settings().transcodeClientProfile, field: { name: t('transcodeClientProfile'), description: t('transcodeClientProfileDescription') }, onChange: function (value) { save({ transcodeClientProfile: value || DEFAULTS.transcodeClientProfile }); noty(t('transcodeClientProfile') + ': ' + (value || DEFAULTS.transcodeClientProfile)); } });
 
         add({ type: 'title', name: component + '_title_advanced', field: { name: t('advancedTitle') } });
         add({ type: 'button', name: component + '_client_id', field: { name: t('clientId'), description: t('clientDescription') }, onChange: function () { promptText(t('clientId'), DEFAULTS.clientId, settings().clientId, function (v) { save({ clientId: v.trim() || DEFAULTS.clientId }); noty(t('savedClient')); }); } });
@@ -3152,9 +4215,11 @@
         ensureStyle();
         addSettings();
         installSourceSelectWatcher();
+        installPlexProgressSync();
+        installNativeTrackDiagnostics();
         Lampa.Listener.follow('full', loadForCard);
         noty(t('loaded'));
-        log('ready');
+        log('ready', { version: '0.2.66-beta-dev' });
     }
 
     (function wait() {
