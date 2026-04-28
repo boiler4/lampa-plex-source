@@ -1915,27 +1915,6 @@
         }).filter(function (server) { return server.connections.length > 0; });
     }
 
-    function bestPlexConnection(servers) {
-        if (!servers || !servers.length) return null;
-        servers.sort(function (a, b) { return (b.owned ? 1 : 0) - (a.owned ? 1 : 0); });
-        var prefs = [
-            function (c) { return c.local && !c.relay && c.protocol === 'https'; },
-            function (c) { return c.local && !c.relay; },
-            function (c) { return !c.relay && c.protocol === 'https'; },
-            function (c) { return !c.relay; },
-            function (c) { return true; }
-        ];
-        for (var sidx = 0; sidx < servers.length; sidx += 1) {
-            for (var pidx = 0; pidx < prefs.length; pidx += 1) {
-                for (var cidx = 0; cidx < servers[sidx].connections.length; cidx += 1) {
-                    var candidate = servers[sidx].connections[cidx];
-                    if (prefs[pidx](candidate)) return { server: servers[sidx], connection: candidate };
-                }
-            }
-        }
-        return null;
-    }
-
     function bestConnectionForServer(server) {
         if (!server || !server.connections || !server.connections.length) return null;
         var choices = server.connections.map(function (connection) { return { server: server, connection: connection }; });
@@ -1970,21 +1949,8 @@
 
         return Promise.all(Object.keys(byServer).map(function (key) {
             var list = byServer[key];
-            function fallbackTarget() {
-                for (var i = 0; i < list.length; i += 1) {
-                    if (list[i].relay) return list[i];
-                }
-                return list[0] || null;
-            }
             function tryAt(index) {
-                if (index >= list.length) {
-                    var fallback = fallbackTarget();
-                    if (fallback) {
-                        fallback.validationFallback = true;
-                        log('target validation fallback', { server: fallback.serverName, base: fallback.base, relay: fallback.relay });
-                    }
-                    return Promise.resolve(fallback);
-                }
+                if (index >= list.length) return Promise.resolve(null);
                 return testPlexTarget(list[index]).then(function (result) {
                     log('target validated', { server: list[index].serverName, base: list[index].base, relay: list[index].relay, machineIdentifier: result.machineIdentifier });
                     return list[index];
@@ -1996,7 +1962,7 @@
             return tryAt(0);
         })).then(function (targets) {
             targets = targets.filter(Boolean);
-            if (targets.length) TARGET_CACHE = { key: cacheKey, expiresAt: Date.now() + 10 * 60 * 1000, targets: targets };
+            if (targets.length) TARGET_CACHE = { key: cacheKey, expiresAt: Date.now() + 2 * 60 * 1000, targets: targets };
             return targets;
         });
     }
@@ -2040,8 +2006,8 @@
             log('active Plex target candidates', targets.map(function (target) { return { name: target.serverName, base: target.base, relay: target.relay, meta: target.meta }; }));
             return pickWorkingTargets(targets, cacheKey).then(function (working) {
                 if (working.length) return working;
-                log('target validation found no working targets; falling back to candidates');
-                return targets;
+                log('target validation found no working targets');
+                throw new Error('no-working-server');
             });
         });
     }
@@ -2097,7 +2063,34 @@
         return choice;
     }
 
-    function choosePlexServer(token) {
+    function plexChoiceTarget(choice, token) {
+        return {
+            base: choice.connection.uri.replace(/\/$/, ''),
+            token: token,
+            serverName: choice.server.name || 'Plex',
+            serverKey: choice.server.machineIdentifier || choice.server.name || choice.connection.uri,
+            relay: !!choice.connection.relay,
+            meta: connectionMeta(choice.connection, false)
+        };
+    }
+
+    function reachablePlexChoices(choices, token) {
+        return Promise.all(choices.map(function (choice) {
+            return testPlexTarget(plexChoiceTarget(choice, token)).then(function (result) {
+                choice.reachable = true;
+                choice.machineIdentifier = result.machineIdentifier;
+                log('server choice reachable', { server: choice.server.name, uri: choice.connection.uri, relay: choice.connection.relay, machineIdentifier: result.machineIdentifier });
+                return choice;
+            }).catch(function (err) {
+                log('server choice offline', { server: choice.server.name, uri: choice.connection.uri, relay: choice.connection.relay, error: err && (err.message || err) });
+                return null;
+            });
+        })).then(function (validated) {
+            return validated.filter(Boolean);
+        });
+    }
+
+    function plexServerChoices(token) {
         return listPlexServers(token).then(function (servers) {
             var choices = [];
             servers.forEach(function (server) {
@@ -2107,6 +2100,16 @@
             });
             choices.sort(function (a, b) { return connectionScore(b) - connectionScore(a); });
             if (!choices.length) throw new Error('no-server');
+            return reachablePlexChoices(choices, token).then(function (working) {
+                working.sort(function (a, b) { return connectionScore(b) - connectionScore(a); });
+                if (!working.length) throw new Error('no-working-server');
+                return working;
+            });
+        });
+    }
+
+    function choosePlexServer(token) {
+        return plexServerChoices(token).then(function (choices) {
             if (choices.length === 1) return savePlexServerChoice(choices[0]);
             return new Promise(function (resolve, reject) {
                 showList(t('selectServer'), t('selectServerHelp'), choices.map(function (choice, index) {
@@ -2125,9 +2128,8 @@
     }
 
     function discoverPlexServer(token) {
-        return listPlexServers(token).then(function (servers) {
-            var best = bestPlexConnection(servers);
-            return savePlexServerChoice(best);
+        return plexServerChoices(token).then(function (choices) {
+            return savePlexServerChoice(choices[0]);
         });
     }
 
