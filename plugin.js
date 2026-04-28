@@ -1903,6 +1903,9 @@
                 name: device.getAttribute('name') || device.getAttribute('clientIdentifier') || 'Plex',
                 machineIdentifier: device.getAttribute('clientIdentifier') || device.getAttribute('machineIdentifier') || device.getAttribute('name') || '',
                 owned: device.getAttribute('owned') === '1' || device.getAttribute('owned') === 'true',
+                online: device.getAttribute('presence') !== '0' && device.getAttribute('presence') !== 'false',
+                presence: device.getAttribute('presence') || '',
+                lastSeenAt: device.getAttribute('lastSeenAt') || '',
                 connections: Array.prototype.slice.call(device.querySelectorAll('Connection')).map(function (c) {
                     return {
                         uri: String(c.getAttribute('uri') || '').replace(/\/$/, ''),
@@ -1912,7 +1915,7 @@
                     };
                 }).filter(function (c) { return !!c.uri; })
             };
-        }).filter(function (server) { return server.connections.length > 0; });
+        }).filter(function (server) { return server.online && server.connections.length > 0; });
     }
 
     function bestConnectionForServer(server) {
@@ -1983,6 +1986,10 @@
             var targets = [];
             var seen = {};
             servers.forEach(function (server) {
+                if (!server.online) {
+                    log('server skipped offline', { server: server.name, presence: server.presence, lastSeenAt: server.lastSeenAt });
+                    return;
+                }
                 var key = server.machineIdentifier || server.name || '';
                 if (!key) key = server.connections && server.connections[0] && server.connections[0].uri;
                 if (!key || seen[key]) return;
@@ -2094,6 +2101,10 @@
         return listPlexServers(token).then(function (servers) {
             var choices = [];
             servers.forEach(function (server) {
+                if (!server.online) {
+                    log('server choice skipped offline', { server: server.name, presence: server.presence, lastSeenAt: server.lastSeenAt });
+                    return;
+                }
                 server.connections.forEach(function (connection) {
                     choices.push({ server: server, connection: connection });
                 });
