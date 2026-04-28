@@ -1,36 +1,26 @@
 # Plex Source for Lampa
 
-**Plex Source** is a frontend-only [Lampa](https://github.com/yumata/lampa) plugin that adds Plex as a playable source on movie and TV show cards.
+**Plex Source** adds Plex as a first-class playback source inside [Lampa](https://github.com/yumata/lampa): sign in with Plex, select a server, open movies or TV episodes from Lampa cards, and play your Plex media directly from the Lampa interface.
 
-It does **not** require a backend bridge. Users install one JavaScript URL in Lampa, configure their Plex server and token in Lampa settings, and play matching Plex items directly.
+It is frontend-only: there is no bridge, proxy, or hosted backend. The plugin runs in Lampa, stores settings locally, and talks directly to Plex / your Plex server.
 
-> Status: `0.2.0-beta` — beta release for private/testing use.
+> Status: `0.3.0-beta` — beta release, ready for broader testing.
 
-## Features
+## Highlights
 
-- Frontend-only plugin: no server, proxy, or bridge required.
-- In-app settings for Plex login, server selection, matching options, debug, and episode action behavior.
-- Movie support: match current Lampa movie to Plex and play it.
-- TV support: match current Lampa show to Plex, then browse Plex seasons and episodes.
-- Plex PIN login from Lampa settings, with automatic server discovery.
-- Single-server or all-server matching mode, with server names shown on Plex buttons.
-- Dynamic source menu refresh: if Plex responds after the Lampa source picker is already open, the Plex button can appear without closing/reopening.
-- Relay/transcode playback attempt for Plex relay connections, improving compatibility when direct file playback is unavailable.
-- Native Lampa menus for seasons and episodes where available.
-- Plex watch state in episode lists:
-  - watched
-  - unwatched
-  - in progress with percentage
-- Manual episode actions:
-  - play
-  - mark watched in Plex
-  - mark unwatched in Plex
-- Original Plex-inspired icon; not the official Plex logo.
+- Plex login from Lampa settings with PIN/OAuth flow.
+- Smart Plex server discovery and connection picker.
+- Offline Plex servers are hidden from recommendations.
+- Movie matching and playback from Lampa movie cards.
+- TV show support with Plex seasons, episodes, watched state, and progress labels.
+- Direct Play by default, plus Plex HLS/transcode fallback for relay or codec-limited clients.
+- HLS pre-play audio/subtitle selection where available.
+- Optional Plex progress sync from Lampa’s integrated player.
+- Single-server mode or all-server matching mode.
+- TV-friendly debug log tools and GitHub bug-report helper.
 - Localized settings/UI strings for: `ru`, `en`, `uk`, `be`, `zh`, `pt`, `bg`, `he`, `cs`, `ro`, `fr`, plus `it`.
 
 ## Installation
-
-Host `plugin.js` somewhere reachable by the device running Lampa, then add the URL in Lampa plugin settings.
 
 Recommended install URL:
 
@@ -38,7 +28,7 @@ Recommended install URL:
 https://cdn.jsdelivr.net/gh/boiler4/lampa-plex-source@main/plugin.js
 ```
 
-Raw GitHub URL is also available, but some Lampa clients may reject it because GitHub serves raw files as `text/plain`:
+Alternative raw GitHub URL:
 
 ```text
 https://raw.githubusercontent.com/boiler4/lampa-plex-source/main/plugin.js
@@ -52,86 +42,55 @@ In Lampa:
 4. Paste the `plugin.js` URL.
 5. Restart/reload Lampa if needed.
 6. Open **Settings → Plex Source**.
-7. Configure Plex access:
-   - recommended: use **Login with Plex**, then select a discovered server/connection
-   - fallback: manually enter Plex server URL, e.g. `http://192.168.1.10:32400`, and Plex token
-   - optional: choose **Selected server** or **All servers** matching mode, plus debug/matching settings
-8. Use **Check connection** when using manual server settings.
+7. Use **Login with Plex** and select the recommended reachable server/connection.
 
-## How to get a Plex token
+Manual server URL + Plex token entry remains available as an advanced fallback.
+
+## Playback modes
+
+- **Direct** — plays Plex file URLs directly through Lampa’s normal playback flow.
+- **Auto** — uses direct playback for direct connections and Plex HLS/transcode for relay connections.
+- **Plex HLS transcode** — forces Plex HLS/transcode and exposes quality/client-profile options.
+
+For best results, choose **local/direct** when the Lampa device is on the same network as your Plex server. Relay is slower and may not support every playback scenario.
+
+## How to get a Plex token manually
 
 Plex documents the official method here:
 
 [Finding an authentication token / X-Plex-Token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/)
 
-Short version:
-
-1. Open Plex Web.
-2. Open any movie or episode.
-3. Choose **⋯ → Get Info → View XML**.
-4. Copy the `X-Plex-Token` value from the URL.
-
-Keep this token private. The plugin stores it in Lampa local storage and sends it directly from Lampa to your Plex server.
-
-## Usage
-
-Open a movie or TV show card in Lampa. If Plex Source finds matches in your Plex libraries, it adds a **Plex** source button. If the Lampa source picker is already open while Plex is still responding, Plex Source tries to refresh that picker dynamically so the button appears without going back and opening it again.
-
-For TV shows:
-
-```text
-Lampa show card → Plex source → seasons → episodes → play
-```
-
-Episode action behavior is configurable:
-
-- **OK plays, long press opens actions** — default.
-- **OK opens actions** — useful if long press is inconvenient on your remote.
-
-Playback uses Lampa’s normal file playback flow. On clients where Lampa lets you choose a player for playback, Plex Source follows the player configured for torrent/file playback.
-
-The action menu includes:
-
-- Play
-- Mark watched in Plex
-- Mark unwatched in Plex
+Keep this token private. Plex Source stores it in Lampa local storage and sends it directly to Plex / your Plex server.
 
 ## Known limitations
 
-Because Plex Source is frontend-only, the Lampa device must be able to reach the Plex server directly.
+Because Plex Source is frontend-only, the Lampa device must be able to reach the selected Plex server connection.
 
 Possible limitations:
 
 - Plex server CORS or network restrictions.
 - Mixed-content issues if Lampa is loaded via HTTPS and Plex is HTTP.
 - Device/webview/player differences across TVs, Android boxes, browsers, etc.
-- Playback position is **not automatically synced back to Plex**.
-- The plugin does **not** write watched state into Lampa’s own timeline/history.
-- Matching depends on titles, year, and IDs exposed by Lampa/Plex; unusual anime/special-order libraries may need manual care.
+- External players may not report progress back to Lampa, so Plex progress sync works best with the integrated player.
+- Matching depends on titles, year, and IDs exposed by Lampa/Plex.
+
+## Debugging and bug reports
+
+In **Settings → Plex Source**:
+
+1. Enable **Debug**.
+2. Reproduce the problem.
+3. Open **Debug log**.
+4. Copy/export the log or use the GitHub bug-report helper.
+
+Logs mask Plex tokens where possible, but still avoid publishing screenshots or config that expose private server details.
 
 ## Privacy and security
 
-- Your Plex token is entered in Lampa and stored locally by Lampa.
-- There is no backend service operated by this plugin.
-- Do not publish screenshots, logs, or config files containing your Plex token.
-- For public hosting, serve the plugin over a trustworthy URL you control.
-
-## Development
-
-Primary file:
-
-```text
-plugin.js
-```
-
-Before release, `plugin.js` should be the canonical install file.
-
-Recommended checks before publishing:
-
-```bash
-node -e "new Function(require('fs').readFileSync('plugin.js','utf8')); console.log('syntax ok')"
-grep -RInE "password|secret|private_key|gho_|X-Plex-Token=" .
-```
+- No backend service is operated by this plugin.
+- Plex credentials/tokens stay in Lampa local storage.
+- Playback and metadata requests go from the Lampa device directly to Plex / your Plex server.
+- Do not publish logs containing private server URLs or Plex tokens.
 
 ## Support development
 

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.3.0-beta - 2026-04-28
+
+- Add Plex HLS/transcode playback flow with selectable client/quality profiles.
+- Add pre-play HLS audio/subtitle selection and remember selected track choices.
+- Add Plex resume handling and optional integrated-player progress sync back to Plex.
+- Improve direct playback resume/seek behavior and reduce noisy debug logging.
+- Validate Plex server connections before recommending them.
+- Hide Plex servers that are offline in Plex resources, avoiding stale recommendations.
+- Keep installed plugin metadata annotated so Lampa shows the plugin name/version correctly.
+
+## 0.2.1-beta - 2026-04-27
+
+- Fix installed plugin card metadata so Lampa shows `Plex Source` instead of `Без названия` / unnamed plugin.
+
 ## 0.2.0-beta - 2026-04-27
 
 - Add optional Plex PIN/OAuth login flow from Lampa settings.
